@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mentor Allocation Tool</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+<header id="app-header">
+
+  <div class="header-inner">
+
+    <div class="header-brand">
+      <i class="fas fa-user-graduate"></i>
+      <span>Mentor Allocator</span>
+    </div>
+
+    <nav class="tab-nav" id="tab-nav">
+
+      <button class="tab-btn active" data-tab="setup">
+        <i class="fas fa-cog"></i>
+        Setup
+      </button>
+
+      <button class="tab-btn" data-tab="allocate">
+        <i class="fas fa-magic"></i>
+        Allocate
+      </button>
+
+      <button class="tab-btn" data-tab="results">
+        <i class="fas fa-chart-bar"></i>
+        Results
+      </button>
+
+    </nav>
+
+  </div>
+
+</header>
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+<main id="app-main">
+
+  <!-- =====================================================
+       SETUP TAB
+  ===================================================== -->
+  <section id="tab-setup" class="tab-content active">
+
+    <!-- ================= MENTORS ================= -->
+    <div class="panel">
+
+      <div class="panel-header">
+
+        <h2>
+          <i class="fas fa-users"></i>
+          Mentors
+        </h2>
+
+        <button class="btn btn-outline btn-sm"
+                id="add-mentor-btn">
+
+          <i class="fas fa-plus"></i>
+          Add Mentor
+        </button>
+
+      </div>
+
+      <p class="panel-desc">
+        Add mentors and set their daily capacity.
+        Allocation limits are:
+
+        <strong>Channel ≤ 45%</strong>,
+        <strong>Inside ≤ 55%</strong>,
+        <strong>Annual ≤ 25%</strong>,
+        <strong>Full ≤ 25%</strong>,
+        <strong>Semester ≤ 50%</strong>
+      </p>
+
+      <div id="mentors-list" class="mentors-grid"></div>
+
+    </div>
+
+  </section>
+
+  <!-- =====================================================
+       ALLOCATE TAB
+  ===================================================== -->
+  <section id="tab-allocate" class="tab-content">
+
+    <div class="panel">
+
+      <div class="panel-header">
+
+        <h2>
+          <i class="fas fa-magic"></i>
+          Daily Allocation
+        </h2>
+
+        <div class="header-actions">
+
+          <button class="btn btn-outline btn-sm"
+                  id="import-csv-btn">
+
+            <i class="fas fa-file-import"></i>
+            Import CSV
+          </button>
+
+          <input type="file"
+                 id="csv-file-input"
+                 accept=".csv"
+                 style="display:none" />
+
+          <button class="btn btn-outline btn-sm"
+                  id="add-student-row-btn">
+
+            <i class="fas fa-plus"></i>
+            Add Row
+          </button>
+
+        </div>
+
+      </div>
+
+      <p class="panel-desc">
+        Enter students to allocate.
+
+        Each student needs:
+
+        <strong>Sales Type</strong>
+        (Channel / Inside)
+
+        and
+
+        <strong>Payment Category</strong>
+        (Annual / Full / Semester).
+      </p>
+
+      <!-- ================= TABLE ================= -->
+      <div class="table-wrap">
+
+        <table id="students-table">
+
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Student Name</th>
+              <th>Sales Type</th>
+              <th>Payment Category</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody id="students-tbody"></tbody>
+
+        </table>
+
+      </div>
+
+      <!-- ================= ACTIONS ================= -->
+      <div class="allocate-bar">
+
+        <button class="btn btn-primary btn-lg"
+                id="run-allocation-btn">
+
+          <i class="fas fa-bolt"></i>
+          Run Allocation
+        </button>
+
+        <button class="btn btn-outline"
+                id="clear-students-btn">
+
+          <i class="fas fa-trash"></i>
+          Clear All
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- =====================================================
+       RESULTS TAB
+  ===================================================== -->
+  <section id="tab-results" class="tab-content">
+
+    <div class="panel">
+
+      <div class="panel-header">
+
+        <h2>
+          <i class="fas fa-check-circle"></i>
+          Allocation Results
+        </h2>
+
+        <div class="header-actions">
+
+          <button class="btn btn-outline btn-sm"
+                  id="export-results-btn">
+
+            <i class="fas fa-file-export"></i>
+            Export CSV
+          </button>
+
+          <button class="btn btn-outline btn-sm"
+                  id="reset-day-btn">
+
+            <i class="fas fa-redo"></i>
+            Reset Day
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- SUMMARY -->
+      <div id="summary-cards"
+           class="summary-cards"></div>
+
+      <!-- MENTOR RESULTS -->
+      <div id="mentor-result-blocks"
+           class="mentor-results"></div>
+
+      <!-- UNALLOCATED -->
+      <div id="unallocated-section" style="display:none">
+
+        <h3 class="section-title warn">
+          <i class="fas fa-exclamation-triangle"></i>
+          Unallocated Students
+        </h3>
+
+        <div id="unallocated-list"
+             class="unallocated-list"></div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+<!-- =====================================================
+     MENTOR TEMPLATE
+===================================================== -->
+<template id="mentor-card-tpl">
+
+  <div class="mentor-card" data-mentor-id="">
+
+    <div class="mentor-card-header">
+
+      <input class="mentor-name-input"
+             type="text"
+             placeholder="Mentor name"
+             maxlength="50" />
+
+      <button class="btn-icon remove-mentor-btn"
+              title="Remove mentor">
+
+        <i class="fas fa-times"></i>
+      </button>
+
+    </div>
+
+    <div class="mentor-capacity-row">
+
+      <label>Daily Capacity</label>
+
+      <input class="mentor-capacity"
+             type="number"
+             min="1"
+             max="200"
+             value="10" />
+
+      <span class="hint">students/day</span>
+
+    </div>
+
+    <!-- LIMIT BADGES -->
+    <div class="mentor-limits-info">
+
+      <span class="limit-badge channel">
+        CH ≤ 45%
+      </span>
+
+      <span class="limit-badge inside">
+        IN ≤ 55%
+      </span>
+
+      <span class="limit-badge annual">
+        AN ≤ 25%
+      </span>
+
+      <span class="limit-badge full">
+        FU ≤ 25%
+      </span>
+
+      <span class="limit-badge semester">
+        SE ≤ 50%
+      </span>
+
+    </div>
+
+  </div>
+
+</template>
+
+<!-- =====================================================
+     TOAST
+===================================================== -->
+<div id="toast-container"></div>
+
+<script src="js/app.js"></script>
+
+</body>
+</html>
