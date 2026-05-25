@@ -12,6 +12,7 @@
 
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
 
 <!-- =====================================================
@@ -26,7 +27,7 @@
       <span>Mentor Allocator</span>
     </div>
 
-    <nav class="tab-nav" id="tab-nav">
+    <nav class="tab-nav">
 
       <button class="tab-btn active" data-tab="setup">
         <i class="fas fa-cog"></i>
@@ -59,7 +60,6 @@
   ===================================================== -->
   <section id="tab-setup" class="tab-content active">
 
-    <!-- ================= MENTORS ================= -->
     <div class="panel">
 
       <div class="panel-header">
@@ -79,14 +79,7 @@
       </div>
 
       <p class="panel-desc">
-        Add mentors and set their daily capacity.
-        Allocation limits are:
-
-        <strong>Channel ≤ 45%</strong>,
-        <strong>Inside ≤ 55%</strong>,
-        <strong>Annual ≤ 25%</strong>,
-        <strong>Full ≤ 25%</strong>,
-        <strong>Semester ≤ 50%</strong>
+        Add mentors, capacity and assign programs.
       </p>
 
       <div id="mentors-list" class="mentors-grid"></div>
@@ -135,32 +128,28 @@
       </div>
 
       <p class="panel-desc">
-        Enter students to allocate.
-
-        Each student needs:
-
-        <strong>Sales Type</strong>
-        (Channel / Inside)
-
-        and
-
-        <strong>Payment Category</strong>
-        (Annual / Full / Semester).
+        CSV Format:
+        Name, SalesType, PaymentCategory, Program
       </p>
 
-      <!-- ================= TABLE ================= -->
+      <!-- =====================================================
+           STUDENTS TABLE
+      ===================================================== -->
       <div class="table-wrap">
 
         <table id="students-table">
 
           <thead>
+
             <tr>
               <th>#</th>
               <th>Student Name</th>
               <th>Sales Type</th>
               <th>Payment Category</th>
+              <th>Program</th>
               <th></th>
             </tr>
+
           </thead>
 
           <tbody id="students-tbody"></tbody>
@@ -169,7 +158,9 @@
 
       </div>
 
-      <!-- ================= ACTIONS ================= -->
+      <!-- =====================================================
+           ACTIONS
+      ===================================================== -->
       <div class="allocate-bar">
 
         <button class="btn btn-primary btn-lg"
@@ -226,15 +217,12 @@
 
       </div>
 
-      <!-- SUMMARY -->
       <div id="summary-cards"
            class="summary-cards"></div>
 
-      <!-- MENTOR RESULTS -->
       <div id="mentor-result-blocks"
            class="mentor-results"></div>
 
-      <!-- UNALLOCATED -->
       <div id="unallocated-section" style="display:none">
 
         <h3 class="section-title warn">
@@ -258,7 +246,7 @@
 ===================================================== -->
 <template id="mentor-card-tpl">
 
-  <div class="mentor-card" data-mentor-id="">
+  <div class="mentor-card">
 
     <div class="mentor-card-header">
 
@@ -267,14 +255,13 @@
              placeholder="Mentor name"
              maxlength="50" />
 
-      <button class="btn-icon remove-mentor-btn"
-              title="Remove mentor">
-
+      <button class="btn-icon remove-mentor-btn">
         <i class="fas fa-times"></i>
       </button>
 
     </div>
 
+    <!-- CAPACITY -->
     <div class="mentor-capacity-row">
 
       <label>Daily Capacity</label>
@@ -286,6 +273,29 @@
              value="10" />
 
       <span class="hint">students/day</span>
+
+    </div>
+
+    <!-- PROGRAM DROPDOWN -->
+    <div class="mentor-capacity-row">
+
+      <label>Program</label>
+
+      <select class="mentor-program">
+
+        <option value="">Select Program</option>
+
+        <option value="BBA">BBA</option>
+        <option value="BCA">BCA</option>
+        <option value="B.Com">B.Com</option>
+        <option value="MA.JMC">MA.JMC</option>
+        <option value="MBA">MBA</option>
+        <option value="MCA">MCA</option>
+        <option value="M.Com">M.Com</option>
+        <option value="MA in Economics">MA in Economics</option>
+        <option value="MSc in Mathematics">MSc in Mathematics</option>
+
+      </select>
 
     </div>
 
