@@ -3,13 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Mentor Allocation Tool</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- GOOGLE FONT -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
 
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <!-- FONT AWESOME -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"
+  />
 
+  <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
@@ -69,9 +78,10 @@
           Mentors
         </h2>
 
-        <button class="btn btn-outline btn-sm"
-                id="add-mentor-btn">
-
+        <button
+          class="btn btn-outline btn-sm"
+          id="add-mentor-btn"
+        >
           <i class="fas fa-plus"></i>
           Add Mentor
         </button>
@@ -79,9 +89,10 @@
       </div>
 
       <p class="panel-desc">
-        Add mentors, capacity and assign programs.
+        Add mentors, daily capacity and assign multiple programs.
       </p>
 
+      <!-- MENTORS -->
       <div id="mentors-list" class="mentors-grid"></div>
 
     </div>
@@ -104,21 +115,27 @@
 
         <div class="header-actions">
 
-          <button class="btn btn-outline btn-sm"
-                  id="import-csv-btn">
-
+          <!-- IMPORT -->
+          <button
+            class="btn btn-outline btn-sm"
+            id="import-csv-btn"
+          >
             <i class="fas fa-file-import"></i>
             Import CSV
           </button>
 
-          <input type="file"
-                 id="csv-file-input"
-                 accept=".csv"
-                 style="display:none" />
+          <input
+            type="file"
+            id="csv-file-input"
+            accept=".csv"
+            style="display:none"
+          />
 
-          <button class="btn btn-outline btn-sm"
-                  id="add-student-row-btn">
-
+          <!-- ADD ROW -->
+          <button
+            class="btn btn-outline btn-sm"
+            id="add-student-row-btn"
+          >
             <i class="fas fa-plus"></i>
             Add Row
           </button>
@@ -127,13 +144,16 @@
 
       </div>
 
+      <!-- DESCRIPTION -->
       <p class="panel-desc">
         CSV Format:
-        Name, SalesType, PaymentCategory, Program
+        <strong>
+          RollNumber, SalesType, PaymentCategory, Program
+        </strong>
       </p>
 
       <!-- =====================================================
-           STUDENTS TABLE
+           TABLE
       ===================================================== -->
       <div class="table-wrap">
 
@@ -143,7 +163,7 @@
 
             <tr>
               <th>#</th>
-              <th>Student Name</th>
+              <th>Roll Number</th>
               <th>Sales Type</th>
               <th>Payment Category</th>
               <th>Program</th>
@@ -163,16 +183,18 @@
       ===================================================== -->
       <div class="allocate-bar">
 
-        <button class="btn btn-primary btn-lg"
-                id="run-allocation-btn">
-
+        <button
+          class="btn btn-primary btn-lg"
+          id="run-allocation-btn"
+        >
           <i class="fas fa-bolt"></i>
           Run Allocation
         </button>
 
-        <button class="btn btn-outline"
-                id="clear-students-btn">
-
+        <button
+          class="btn btn-outline"
+          id="clear-students-btn"
+        >
           <i class="fas fa-trash"></i>
           Clear All
         </button>
@@ -199,16 +221,20 @@
 
         <div class="header-actions">
 
-          <button class="btn btn-outline btn-sm"
-                  id="export-results-btn">
-
+          <!-- EXPORT -->
+          <button
+            class="btn btn-outline btn-sm"
+            id="export-results-btn"
+          >
             <i class="fas fa-file-export"></i>
             Export CSV
           </button>
 
-          <button class="btn btn-outline btn-sm"
-                  id="reset-day-btn">
-
+          <!-- RESET -->
+          <button
+            class="btn btn-outline btn-sm"
+            id="reset-day-btn"
+          >
             <i class="fas fa-redo"></i>
             Reset Day
           </button>
@@ -217,21 +243,33 @@
 
       </div>
 
-      <div id="summary-cards"
-           class="summary-cards"></div>
+      <!-- SUMMARY -->
+      <div
+        id="summary-cards"
+        class="summary-cards"
+      ></div>
 
-      <div id="mentor-result-blocks"
-           class="mentor-results"></div>
+      <!-- RESULTS -->
+      <div
+        id="mentor-result-blocks"
+        class="mentor-results"
+      ></div>
 
-      <div id="unallocated-section" style="display:none">
+      <!-- UNALLOCATED -->
+      <div
+        id="unallocated-section"
+        style="display:none"
+      >
 
         <h3 class="section-title warn">
           <i class="fas fa-exclamation-triangle"></i>
           Unallocated Students
         </h3>
 
-        <div id="unallocated-list"
-             class="unallocated-list"></div>
+        <div
+          id="unallocated-list"
+          class="unallocated-list"
+        ></div>
 
       </div>
 
@@ -248,12 +286,15 @@
 
   <div class="mentor-card">
 
+    <!-- HEADER -->
     <div class="mentor-card-header">
 
-      <input class="mentor-name-input"
-             type="text"
-             placeholder="Mentor name"
-             maxlength="50" />
+      <input
+        class="mentor-name-input"
+        type="text"
+        placeholder="Mentor name"
+        maxlength="50"
+      />
 
       <button class="btn-icon remove-mentor-btn">
         <i class="fas fa-times"></i>
@@ -266,40 +307,79 @@
 
       <label>Daily Capacity</label>
 
-      <input class="mentor-capacity"
-             type="number"
-             min="1"
-             max="200"
-             value="10" />
+      <input
+        class="mentor-capacity"
+        type="number"
+        min="1"
+        max="200"
+        value="10"
+      />
 
       <span class="hint">students/day</span>
 
     </div>
 
-    <!-- PROGRAM DROPDOWN -->
-    <div class="mentor-capacity-row">
+    <!-- =====================================================
+         MULTI PROGRAM SELECT
+    ===================================================== -->
+    <div class="mentor-program-section">
 
-      <label>Program</label>
+      <label class="program-label">
+        Assign Programs
+      </label>
 
-      <select class="mentor-program">
+      <div class="program-checkbox-grid">
 
-        <option value="">Select Program</option>
+        <label class="program-chip">
+          <input type="checkbox" value="BBA" class="mentor-program-checkbox" />
+          <span>BBA</span>
+        </label>
 
-        <option value="BBA">BBA</option>
-        <option value="BCA">BCA</option>
-        <option value="B.Com">B.Com</option>
-        <option value="MA.JMC">MA.JMC</option>
-        <option value="MBA">MBA</option>
-        <option value="MCA">MCA</option>
-        <option value="M.Com">M.Com</option>
-        <option value="MA in Economics">MA in Economics</option>
-        <option value="MSc in Mathematics">MSc in Mathematics</option>
+        <label class="program-chip">
+          <input type="checkbox" value="BCA" class="mentor-program-checkbox" />
+          <span>BCA</span>
+        </label>
 
-      </select>
+        <label class="program-chip">
+          <input type="checkbox" value="B.Com" class="mentor-program-checkbox" />
+          <span>B.Com</span>
+        </label>
+
+        <label class="program-chip">
+          <input type="checkbox" value="MA.JMC" class="mentor-program-checkbox" />
+          <span>MA.JMC</span>
+        </label>
+
+        <label class="program-chip">
+          <input type="checkbox" value="MBA" class="mentor-program-checkbox" />
+          <span>MBA</span>
+        </label>
+
+        <label class="program-chip">
+          <input type="checkbox" value="MCA" class="mentor-program-checkbox" />
+          <span>MCA</span>
+        </label>
+
+        <label class="program-chip">
+          <input type="checkbox" value="M.Com" class="mentor-program-checkbox" />
+          <span>M.Com</span>
+        </label>
+
+        <label class="program-chip">
+          <input type="checkbox" value="MA in Economics" class="mentor-program-checkbox" />
+          <span>MA in Economics</span>
+        </label>
+
+        <label class="program-chip">
+          <input type="checkbox" value="MSc in Mathematics" class="mentor-program-checkbox" />
+          <span>MSc in Mathematics</span>
+        </label>
+
+      </div>
 
     </div>
 
-    <!-- LIMIT BADGES -->
+    <!-- LIMITS -->
     <div class="mentor-limits-info">
 
       <span class="limit-badge channel">
@@ -333,6 +413,7 @@
 ===================================================== -->
 <div id="toast-container"></div>
 
+<!-- JS -->
 <script src="js/app.js"></script>
 
 </body>
