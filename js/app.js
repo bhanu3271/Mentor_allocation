@@ -1,6 +1,11 @@
 /* =====================================================
    FINAL COMPLETE MENTOR ALLOCATOR
-   WITH PROGRAM SUPPORT + CSV IMPORT
+   WITH:
+   ✔ Roll Number Support
+   ✔ Multi Program Support
+   ✔ Better Program UI
+   ✔ CSV Import
+   ✔ CSV Export
 ===================================================== */
 
 'use strict';
@@ -133,7 +138,6 @@ const mentorsList = document.getElementById('mentors-list');
 function initMentors() {
 
   if (addMentorBtn) {
-
     addMentorBtn.addEventListener('click', addMentor);
   }
 }
@@ -156,8 +160,7 @@ function addMentor() {
 
 function appendMentorCard(mentor) {
 
-  const template = document
-    .getElementById('mentor-card-tpl');
+  const template = document.getElementById('mentor-card-tpl');
 
   const clone = template.content.cloneNode(true);
 
@@ -172,35 +175,57 @@ function appendMentorCard(mentor) {
   nameInput.value = mentor.name;
   capInput.value = mentor.capacity;
 
-  /* ADD PROGRAM DROPDOWN */
+  /* =========================================
+     PROGRAM CHECKBOXES
+  ========================================= */
 
   const programWrap = document.createElement('div');
 
-  programWrap.className = 'mentor-program-wrap';
+  programWrap.className = 'mentor-programs-wrap';
 
   programWrap.innerHTML = `
     <label>Programs</label>
 
-    <select class="mentor-program-select" multiple>
+    <div class="program-checkboxes">
 
-      ${PROGRAMS.map(p => `
-        <option value="${p}">
-          ${p}
-        </option>
+      ${PROGRAMS.map(program => `
+        <label>
+          <input type="checkbox" value="${program}" />
+          <span>${program}</span>
+        </label>
       `).join('')}
 
-    </select>
+    </div>
 
-    <small>
-      Hold CTRL to select multiple programs
-    </small>
+    <div class="program-help-text">
+      Select one or multiple programs
+    </div>
   `;
 
   const limitsInfo = card.querySelector('.mentor-limits-info');
 
   card.insertBefore(programWrap, limitsInfo);
 
-  const programSelect = card.querySelector('.mentor-program-select');
+  const checkboxes = programWrap.querySelectorAll('input[type="checkbox"]');
+
+  checkboxes.forEach(checkbox => {
+
+    checkbox.addEventListener('change', () => {
+
+      mentor.programs = Array.from(checkboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+
+      checkbox.parentElement.classList.toggle(
+        'checked',
+        checkbox.checked
+      );
+    });
+  });
+
+  /* =========================================
+     EVENTS
+  ========================================= */
 
   nameInput.addEventListener('input', () => {
     mentor.name = nameInput.value.trim();
@@ -208,14 +233,6 @@ function appendMentorCard(mentor) {
 
   capInput.addEventListener('input', () => {
     mentor.capacity = Math.max(5, parseInt(capInput.value) || 5);
-  });
-
-  programSelect.addEventListener('change', () => {
-
-    mentor.programs = Array.from(
-      programSelect.selectedOptions
-    ).map(o => o.value);
-
   });
 
   removeBtn.addEventListener('click', () => {
@@ -263,7 +280,7 @@ function addStudentRow(data = {}) {
 
   const student = {
     id,
-    name: data.name || '',
+    rollNumber: data.rollNumber || '',
     salesType: data.salesType || 'Channel',
     paymentCategory: data.paymentCategory || 'Annual',
     program: data.program || PROGRAMS[0]
@@ -280,9 +297,9 @@ function addStudentRow(data = {}) {
 
     <td>
       <input type="text"
-             class="s-name"
-             placeholder="Student Name"
-             value="${student.name}" />
+             class="s-roll"
+             placeholder="Roll Number"
+             value="${student.rollNumber}" />
     </td>
 
     <td>
@@ -323,8 +340,8 @@ function addStudentRow(data = {}) {
   tr.querySelector('.s-payment').value = student.paymentCategory;
   tr.querySelector('.s-program').value = student.program;
 
-  tr.querySelector('.s-name').addEventListener('input', e => {
-    student.name = e.target.value.trim();
+  tr.querySelector('.s-roll').addEventListener('input', e => {
+    student.rollNumber = e.target.value.trim();
   });
 
   tr.querySelector('.s-sales').addEventListener('change', e => {
@@ -408,7 +425,7 @@ function handleCSVImport(event) {
 
       if (
         index === 0 &&
-        line.toLowerCase().includes('student')
+        line.toLowerCase().includes('roll')
       ) {
         return;
       }
@@ -418,16 +435,16 @@ function handleCSVImport(event) {
         .map(c => c.trim().replace(/^"|"$/g, ''));
 
       const [
-        name,
+        rollNumber,
         salesType,
         paymentCategory,
         program
       ] = cols;
 
-      if (!name) return;
+      if (!rollNumber) return;
 
       addStudentRow({
-        name: name,
+        rollNumber: rollNumber,
         salesType: normalizeSalesType(salesType),
         paymentCategory: normalizePayment(paymentCategory),
         program: program || PROGRAMS[0]
@@ -483,7 +500,6 @@ const runAllocationBtn = document.getElementById('run-allocation-btn');
 function initAllocation() {
 
   if (runAllocationBtn) {
-
     runAllocationBtn.addEventListener('click', runAllocation);
   }
 }
@@ -497,7 +513,7 @@ function runAllocation() {
     return;
   }
 
-  const students = STATE.students.filter(s => s.name);
+  const students = STATE.students.filter(s => s.rollNumber);
 
   if (students.length === 0) {
     toast('Please add students', 'error');
@@ -533,8 +549,6 @@ function runAllocation() {
 
       validMentors.forEach(m => {
 
-        /* PROGRAM CHECK */
-
         if (
           m.programs.length > 0 &&
           !m.programs.includes(student.program)
@@ -554,13 +568,9 @@ function runAllocation() {
 
         if (STRICT_MODE) {
 
-          if (c[stKey] >= stLimit) {
-            return;
-          }
+          if (c[stKey] >= stLimit) return;
 
-          if (c[pcKey] >= pcLimit) {
-            return;
-          }
+          if (c[pcKey] >= pcLimit) return;
         }
 
         const salesRatio = c[stKey] / cap;
@@ -588,7 +598,7 @@ function runAllocation() {
         counts[bestMentor.id].total++;
 
         assigned.push({
-          studentName: student.name,
+          rollNumber: student.rollNumber,
           mentorName: bestMentor.name,
           salesType: student.salesType,
           paymentCategory: student.paymentCategory,
@@ -676,7 +686,7 @@ function renderResults() {
 
           ${mentorStudents.map(s => `
             <div class="student-chip">
-              ${s.studentName}
+              ${s.rollNumber}
               •
               ${s.program}
             </div>
@@ -744,7 +754,6 @@ const resetBtn = document.getElementById('reset-day-btn');
 function initReset() {
 
   if (resetBtn) {
-
     resetBtn.addEventListener('click', resetDay);
   }
 }
@@ -779,7 +788,6 @@ const exportBtn = document.getElementById('export-results-btn');
 function initExport() {
 
   if (exportBtn) {
-
     exportBtn.addEventListener('click', exportCSV);
   }
 }
@@ -792,13 +800,13 @@ function exportCSV() {
   }
 
   const rows = [
-    ['Student', 'Mentor', 'Sales Type', 'Payment Category', 'Program']
+    ['Roll Number', 'Mentor', 'Sales Type', 'Payment Category', 'Program']
   ];
 
   STATE.lastResults.assigned.forEach(a => {
 
     rows.push([
-      a.studentName,
+      a.rollNumber,
       a.mentorName,
       a.salesType,
       a.paymentCategory,
