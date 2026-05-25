@@ -4,6 +4,7 @@
    ✔ Roll Number Support
    ✔ Multi Program Support
    ✔ Better Program UI
+   ✔ Balanced Allocation Engine
    ✔ CSV Import
    ✔ CSV Export
 ===================================================== */
@@ -43,8 +44,6 @@ const LIMITS = {
   full: 0.25,
   semester: 0.50
 };
-
-const STRICT_MODE = true;
 
 let mentorCounter = 0;
 let studentCounter = 0;
@@ -179,6 +178,12 @@ function appendMentorCard(mentor) {
      PROGRAM CHECKBOXES
   ========================================= */
 
+  const oldProgramRow = card.querySelector('.mentor-capacity-row:nth-child(3)');
+
+  if (oldProgramRow) {
+    oldProgramRow.remove();
+  }
+
   const programWrap = document.createElement('div');
 
   programWrap.className = 'mentor-programs-wrap';
@@ -189,7 +194,7 @@ function appendMentorCard(mentor) {
     <div class="program-checkboxes">
 
       ${PROGRAMS.map(program => `
-        <label>
+        <label class="program-pill">
           <input type="checkbox" value="${program}" />
           <span>${program}</span>
         </label>
@@ -414,11 +419,6 @@ function handleCSVImport(event) {
       .map(line => line.trim())
       .filter(line => line);
 
-    if (lines.length === 0) {
-      toast('CSV file is empty', 'warn');
-      return;
-    }
-
     let imported = 0;
 
     lines.forEach((line, index) => {
@@ -444,7 +444,7 @@ function handleCSVImport(event) {
       if (!rollNumber) return;
 
       addStudentRow({
-        rollNumber: rollNumber,
+        rollNumber,
         salesType: normalizeSalesType(salesType),
         paymentCategory: normalizePayment(paymentCategory),
         program: program || PROGRAMS[0]
@@ -492,7 +492,7 @@ function normalizePayment(value) {
 }
 
 /* =====================================================
-   ALLOCATION ENGINE
+   BALANCED ALLOCATION ENGINE
 ===================================================== */
 
 const runAllocationBtn = document.getElementById('run-allocation-btn');
@@ -537,79 +537,116 @@ function runAllocation() {
   const assigned = [];
   const unallocated = [];
 
-  students
-    .sort(() => Math.random() - 0.5)
-    .forEach(student => {
+  const sortedStudents = [...students].sort((a, b) => {
 
-      const stKey = student.salesType.toLowerCase();
-      const pcKey = student.paymentCategory.toLowerCase();
+    const aScore =
+      (a.paymentCategory === 'Full' ? 3 : 0) +
+      (a.paymentCategory === 'Annual' ? 2 : 0) +
+      (a.salesType === 'Inside' ? 1 : 0);
 
-      let bestMentor = null;
-      let bestScore = Infinity;
+    const bScore =
+      (b.paymentCategory === 'Full' ? 3 : 0) +
+      (b.paymentCategory === 'Annual' ? 2 : 0) +
+      (b.salesType === 'Inside' ? 1 : 0);
 
-      validMentors.forEach(m => {
+    return bScore - aScore;
+  });
 
-        if (
-          m.programs.length > 0 &&
-          !m.programs.includes(student.program)
-        ) {
-          return;
-        }
+  sortedStudents.forEach(student => {
 
-        const c = counts[m.id];
-        const cap = m.capacity;
+    const stKey = student.salesType.toLowerCase();
+    const pcKey = student.paymentCategory.toLowerCase();
 
-        if (c.total >= cap) {
-          return;
-        }
+    const eligibleMentors = validMentors.filter(m => {
 
-        const stLimit = getQuota(cap, LIMITS[stKey]);
-        const pcLimit = getQuota(cap, LIMITS[pcKey]);
+      if (
+        m.programs.length > 0 &&
+        !m.programs.includes(student.program)
+      ) {
+        return false;
+      }
 
-        if (STRICT_MODE) {
+      const c = counts[m.id];
 
-          if (c[stKey] >= stLimit) return;
+      if (c.total >= m.capacity) {
+        return false;
+      }
 
-          if (c[pcKey] >= pcLimit) return;
-        }
+      return true;
+    });
 
-        const salesRatio = c[stKey] / cap;
-        const paymentRatio = c[pcKey] / cap;
-        const totalRatio = c.total / cap;
+    if (eligibleMentors.length === 0) {
 
-        const salesGap = Math.abs(LIMITS[stKey] - salesRatio);
-        const paymentGap = Math.abs(LIMITS[pcKey] - paymentRatio);
+      unallocated.push(student);
 
-        const score =
-          (salesGap * 40) +
-          (paymentGap * 40) +
-          (totalRatio * 20);
+      return;
+    }
 
-        if (score < bestScore) {
-          bestScore = score;
-          bestMentor = m;
-        }
-      });
+    let bestMentor = null;
 
-      if (bestMentor) {
+    let bestScore = Infinity;
 
-        counts[bestMentor.id][stKey]++;
-        counts[bestMentor.id][pcKey]++;
-        counts[bestMentor.id].total++;
+    eligibleMentors.forEach(m => {
 
-        assigned.push({
-          rollNumber: student.rollNumber,
-          mentorName: bestMentor.name,
-          salesType: student.salesType,
-          paymentCategory: student.paymentCategory,
-          program: student.program
-        });
+      const c = counts[m.id];
 
-      } else {
+      const cap = m.capacity;
 
-        unallocated.push(student);
+      const stLimit = getQuota(cap, LIMITS[stKey]);
+
+      const pcLimit = getQuota(cap, LIMITS[pcKey]);
+
+      let penalty = 0;
+
+      if (c[stKey] >= stLimit) {
+        penalty += 1000;
+      }
+
+      if (c[pcKey] >= pcLimit) {
+        penalty += 1000;
+      }
+
+      const totalRatio = c.total / cap;
+
+      const salesRatio = c[stKey] / cap;
+
+      const paymentRatio = c[pcKey] / cap;
+
+      const score =
+        (totalRatio * 100) +
+        (salesRatio * 60) +
+        (paymentRatio * 60) +
+        penalty;
+
+      if (score < bestScore) {
+
+        bestScore = score;
+
+        bestMentor = m;
       }
     });
+
+    if (bestMentor) {
+
+      counts[bestMentor.id][stKey]++;
+
+      counts[bestMentor.id][pcKey]++;
+
+      counts[bestMentor.id].total++;
+
+      assigned.push({
+        rollNumber: student.rollNumber,
+        mentorName: bestMentor.name,
+        salesType: student.salesType,
+        paymentCategory: student.paymentCategory,
+        program: student.program
+      });
+
+    } else {
+
+      unallocated.push(student);
+    }
+  });
 
   STATE.lastResults = {
     assigned,
