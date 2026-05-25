@@ -1,6 +1,6 @@
 /* =====================================================
-   FINAL WORKING MENTOR ALLOCATOR
-   WITHOUT PROGRAM SELECTION
+   FINAL COMPLETE MENTOR ALLOCATOR
+   WITH CSV IMPORT
 ===================================================== */
 
 'use strict';
@@ -251,6 +251,9 @@ function addStudentRow(data = {}) {
     </td>
   `;
 
+  tr.querySelector('.s-sales').value = student.salesType;
+  tr.querySelector('.s-payment').value = student.paymentCategory;
+
   tr.querySelector('.s-name').addEventListener('input', e => {
     student.name = e.target.value.trim();
   });
@@ -284,6 +287,116 @@ function clearStudents() {
   tbody.innerHTML = '';
 
   toast('Students cleared', 'info');
+}
+
+/* =====================================================
+   CSV IMPORT
+===================================================== */
+
+const importCsvBtn = document.getElementById('import-csv-btn');
+const csvFileInput = document.getElementById('csv-file-input');
+
+function initCSVImport() {
+
+  if (!importCsvBtn || !csvFileInput) return;
+
+  importCsvBtn.addEventListener('click', () => {
+    csvFileInput.click();
+  });
+
+  csvFileInput.addEventListener('change', handleCSVImport);
+}
+
+function handleCSVImport(event) {
+
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+
+    const text = e.target.result;
+
+    const lines = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line);
+
+    if (lines.length === 0) {
+      toast('CSV file is empty', 'warn');
+      return;
+    }
+
+    let imported = 0;
+
+    lines.forEach((line, index) => {
+
+      if (
+        index === 0 &&
+        line.toLowerCase().includes('student')
+      ) {
+        return;
+      }
+
+      const cols = line
+        .split(',')
+        .map(c => c.trim().replace(/^"|"$/g, ''));
+
+      const [
+        name,
+        salesType,
+        paymentCategory
+      ] = cols;
+
+      if (!name) return;
+
+      addStudentRow({
+        name: name,
+        salesType: normalizeSalesType(salesType),
+        paymentCategory: normalizePayment(paymentCategory)
+      });
+
+      imported++;
+    });
+
+    toast(`${imported} students imported`, 'success');
+
+    csvFileInput.value = '';
+  };
+
+  reader.readAsText(file);
+}
+
+function normalizeSalesType(value) {
+
+  if (!value) return 'Channel';
+
+  value = value.toLowerCase();
+
+  if (value.includes('inside')) {
+    return 'Inside';
+  }
+
+  return 'Channel';
+}
+
+function normalizePayment(value) {
+
+  if (!value) return 'Annual';
+
+  value = value.toLowerCase();
+
+  if (value.includes('semester')) {
+    return 'Semester';
+  }
+
+  if (value.includes('full')) {
+    return 'Full';
+  }
+
+  return 'Annual';
 }
 
 /* =====================================================
@@ -648,6 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initMentors();
   initStudents();
+  initCSVImport();
   initAllocation();
   initReset();
   initExport();
