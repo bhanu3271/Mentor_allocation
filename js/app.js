@@ -1,9 +1,25 @@
 /* =====================================================
    FINAL COMPLETE MENTOR ALLOCATOR
-   WITH CSV IMPORT
+   WITH PROGRAM SUPPORT + CSV IMPORT
 ===================================================== */
 
 'use strict';
+
+/* =====================================================
+   PROGRAMS
+===================================================== */
+
+const PROGRAMS = [
+  'BBA',
+  'BCA',
+  'B.Com',
+  'MA.JMC',
+  'MBA',
+  'MCA',
+  'M.Com',
+  'MA in Economics',
+  'MSc in Mathematics'
+];
 
 /* =====================================================
    STATE
@@ -129,7 +145,8 @@ function addMentor() {
   const mentor = {
     id,
     name: '',
-    capacity: 10
+    capacity: 10,
+    programs: []
   };
 
   STATE.mentors.push(mentor);
@@ -155,12 +172,50 @@ function appendMentorCard(mentor) {
   nameInput.value = mentor.name;
   capInput.value = mentor.capacity;
 
+  /* ADD PROGRAM DROPDOWN */
+
+  const programWrap = document.createElement('div');
+
+  programWrap.className = 'mentor-program-wrap';
+
+  programWrap.innerHTML = `
+    <label>Programs</label>
+
+    <select class="mentor-program-select" multiple>
+
+      ${PROGRAMS.map(p => `
+        <option value="${p}">
+          ${p}
+        </option>
+      `).join('')}
+
+    </select>
+
+    <small>
+      Hold CTRL to select multiple programs
+    </small>
+  `;
+
+  const limitsInfo = card.querySelector('.mentor-limits-info');
+
+  card.insertBefore(programWrap, limitsInfo);
+
+  const programSelect = card.querySelector('.mentor-program-select');
+
   nameInput.addEventListener('input', () => {
     mentor.name = nameInput.value.trim();
   });
 
   capInput.addEventListener('input', () => {
     mentor.capacity = Math.max(5, parseInt(capInput.value) || 5);
+  });
+
+  programSelect.addEventListener('change', () => {
+
+    mentor.programs = Array.from(
+      programSelect.selectedOptions
+    ).map(o => o.value);
+
   });
 
   removeBtn.addEventListener('click', () => {
@@ -210,7 +265,8 @@ function addStudentRow(data = {}) {
     id,
     name: data.name || '',
     salesType: data.salesType || 'Channel',
-    paymentCategory: data.paymentCategory || 'Annual'
+    paymentCategory: data.paymentCategory || 'Annual',
+    program: data.program || PROGRAMS[0]
   };
 
   STATE.students.push(student);
@@ -245,6 +301,18 @@ function addStudentRow(data = {}) {
     </td>
 
     <td>
+      <select class="s-program">
+
+        ${PROGRAMS.map(p => `
+          <option value="${p}">
+            ${p}
+          </option>
+        `).join('')}
+
+      </select>
+    </td>
+
+    <td>
       <button class="btn-icon remove-row-btn">
         <i class="fas fa-trash"></i>
       </button>
@@ -253,6 +321,7 @@ function addStudentRow(data = {}) {
 
   tr.querySelector('.s-sales').value = student.salesType;
   tr.querySelector('.s-payment').value = student.paymentCategory;
+  tr.querySelector('.s-program').value = student.program;
 
   tr.querySelector('.s-name').addEventListener('input', e => {
     student.name = e.target.value.trim();
@@ -264,6 +333,10 @@ function addStudentRow(data = {}) {
 
   tr.querySelector('.s-payment').addEventListener('change', e => {
     student.paymentCategory = e.target.value;
+  });
+
+  tr.querySelector('.s-program').addEventListener('change', e => {
+    student.program = e.target.value;
   });
 
   tr.querySelector('.remove-row-btn').addEventListener('click', () => {
@@ -347,7 +420,8 @@ function handleCSVImport(event) {
       const [
         name,
         salesType,
-        paymentCategory
+        paymentCategory,
+        program
       ] = cols;
 
       if (!name) return;
@@ -355,7 +429,8 @@ function handleCSVImport(event) {
       addStudentRow({
         name: name,
         salesType: normalizeSalesType(salesType),
-        paymentCategory: normalizePayment(paymentCategory)
+        paymentCategory: normalizePayment(paymentCategory),
+        program: program || PROGRAMS[0]
       });
 
       imported++;
@@ -458,6 +533,15 @@ function runAllocation() {
 
       validMentors.forEach(m => {
 
+        /* PROGRAM CHECK */
+
+        if (
+          m.programs.length > 0 &&
+          !m.programs.includes(student.program)
+        ) {
+          return;
+        }
+
         const c = counts[m.id];
         const cap = m.capacity;
 
@@ -507,7 +591,8 @@ function runAllocation() {
           studentName: student.name,
           mentorName: bestMentor.name,
           salesType: student.salesType,
-          paymentCategory: student.paymentCategory
+          paymentCategory: student.paymentCategory,
+          program: student.program
         });
 
       } else {
@@ -541,12 +626,9 @@ function renderResults() {
 
   const summaryCards = document.getElementById('summary-cards');
   const mentorBlocks = document.getElementById('mentor-result-blocks');
-  const unallocatedSection = document.getElementById('unallocated-section');
-  const unallocatedList = document.getElementById('unallocated-list');
 
   const {
     assigned,
-    unallocated,
     counts,
     mentors
   } = STATE.lastResults;
@@ -556,11 +638,6 @@ function renderResults() {
       <div class="sc-num">${assigned.length}</div>
       <div class="sc-lbl">Allocated</div>
     </div>
-
-    <div class="summary-card">
-      <div class="sc-num">${unallocated.length}</div>
-      <div class="sc-lbl">Unallocated</div>
-    </div>
   `;
 
   mentorBlocks.innerHTML = '';
@@ -568,6 +645,10 @@ function renderResults() {
   mentors.forEach(m => {
 
     const stats = counts[m.id];
+
+    const mentorStudents = assigned.filter(
+      a => a.mentorName === m.name
+    );
 
     const div = document.createElement('div');
 
@@ -591,26 +672,23 @@ function renderResults() {
 
         ${makeBar('Semester', stats.semester, LIMITS.semester, m.capacity)}
 
+        <div class="student-mini-list">
+
+          ${mentorStudents.map(s => `
+            <div class="student-chip">
+              ${s.studentName}
+              •
+              ${s.program}
+            </div>
+          `).join('')}
+
+        </div>
+
       </div>
     `;
 
     mentorBlocks.appendChild(div);
   });
-
-  if (unallocated.length > 0) {
-
-    unallocatedSection.style.display = 'block';
-
-    unallocatedList.innerHTML = unallocated.map(u => `
-      <div class="unalloc-chip">
-        ${u.name}
-      </div>
-    `).join('');
-
-  } else {
-
-    unallocatedSection.style.display = 'none';
-  }
 }
 
 function makeBar(label, used, limitRatio, cap) {
@@ -685,8 +763,6 @@ function resetDay() {
   document.getElementById('summary-cards').innerHTML = '';
   document.getElementById('mentor-result-blocks').innerHTML = '';
 
-  document.getElementById('unallocated-section').style.display = 'none';
-
   for (let i = 0; i < 3; i++) {
     addStudentRow();
   }
@@ -716,7 +792,7 @@ function exportCSV() {
   }
 
   const rows = [
-    ['Student', 'Mentor', 'Sales Type', 'Payment Category']
+    ['Student', 'Mentor', 'Sales Type', 'Payment Category', 'Program']
   ];
 
   STATE.lastResults.assigned.forEach(a => {
@@ -725,7 +801,8 @@ function exportCSV() {
       a.studentName,
       a.mentorName,
       a.salesType,
-      a.paymentCategory
+      a.paymentCategory,
+      a.program
     ]);
   });
 
