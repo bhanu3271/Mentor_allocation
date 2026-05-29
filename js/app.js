@@ -1,16 +1,3 @@
-```javascript
-/* =====================================================
-   FINAL COMPLETE MENTOR ALLOCATOR
-   WITH:
-   ✔ Roll Number Support
-   ✔ Existing Mentor Lock Support
-   ✔ Smart Balanced Allocation
-   ✔ Equal Distribution Engine
-   ✔ Multi Program Support
-   ✔ CSV Import
-   ✔ CSV Export
-===================================================== */
-
 'use strict';
 
 /* =====================================================
@@ -39,83 +26,35 @@ const STATE = {
   lastResults: null
 };
 
-const LIMITS = {
-  channel: 0.45,
-  inside: 0.55,
-  annual: 0.25,
-  full: 0.25,
-  semester: 0.50
-};
-
 let mentorCounter = 0;
 let studentCounter = 0;
 
 /* =====================================================
-   HELPERS
+   TOAST
 ===================================================== */
 
-function toast(msg, type = 'info', duration = 3000) {
+function toast(msg, type = 'info') {
 
   const container =
     document.getElementById('toast-container');
 
   if (!container) return;
 
-  const icons = {
-    success: 'fa-check-circle',
-    warn: 'fa-exclamation-circle',
-    error: 'fa-times-circle',
-    info: 'fa-info-circle'
-  };
+  const div = document.createElement('div');
 
-  const el = document.createElement('div');
+  div.className = `toast ${type}`;
 
-  el.className = `toast ${type}`;
-
-  el.innerHTML = `
-    <i class="fas ${icons[type] || icons.info}"></i>
-    <span>${msg}</span>
+  div.innerHTML = `
+    <div class="toast-msg">
+      ${msg}
+    </div>
   `;
 
-  container.appendChild(el);
+  container.appendChild(div);
 
   setTimeout(() => {
-    el.remove();
-  }, duration);
-}
-
-function getQuota(capacity, ratio) {
-  return Math.max(1, Math.round(capacity * ratio));
-}
-
-function normalizeSalesType(value) {
-
-  if (!value) return 'Channel';
-
-  value = value.toLowerCase();
-
-  if (value.includes('inside')) {
-    return 'Inside';
-  }
-
-  return 'Channel';
-}
-
-function normalizePayment(value) {
-
-  if (!value) return 'Annual';
-
-  value = value.toLowerCase();
-
-  if (value.includes('semester')) {
-    return 'Semester';
-  }
-
-  if (value.includes('full')) {
-    return 'Full';
-  }
-
-  return 'Annual';
+    div.remove();
+  }, 3000);
 }
 
 /* =====================================================
@@ -124,48 +63,50 @@ function normalizePayment(value) {
 
 function initTabs() {
 
-  document.querySelectorAll('.tab-btn')
-    .forEach(btn => {
+  const buttons =
+    document.querySelectorAll('.tab-btn');
 
-      btn.addEventListener('click', () => {
+  const tabs =
+    document.querySelectorAll('.tab-content');
 
-        document.querySelectorAll('.tab-btn')
-          .forEach(b => {
-            b.classList.remove('active');
-          });
+  buttons.forEach(btn => {
 
-        document.querySelectorAll('.tab-content')
-          .forEach(t => {
-            t.classList.remove('active');
-          });
+    btn.addEventListener('click', () => {
 
-        btn.classList.add('active');
+      buttons.forEach(b =>
+        b.classList.remove('active')
+      );
 
-        document
-          .getElementById(
-            'tab-' + btn.dataset.tab
-          )
-          .classList.add('active');
-      });
+      tabs.forEach(t =>
+        t.classList.remove('active')
+      );
+
+      btn.classList.add('active');
+
+      const tab =
+        document.getElementById(
+          'tab-' + btn.dataset.tab
+        );
+
+      if (tab) {
+        tab.classList.add('active');
+      }
     });
+  });
 }
 
 /* =====================================================
    MENTORS
 ===================================================== */
 
-const mentorsList =
-  document.getElementById('mentors-list');
-
-const addMentorBtn =
-  document.getElementById('add-mentor-btn');
-
 function initMentors() {
 
-  addMentorBtn.addEventListener(
-    'click',
-    addMentor
-  );
+  const btn =
+    document.getElementById('add-mentor-btn');
+
+  if (!btn) return;
+
+  btn.addEventListener('click', addMentor);
 }
 
 function addMentor() {
@@ -179,10 +120,10 @@ function addMentor() {
 
   STATE.mentors.push(mentor);
 
-  appendMentorCard(mentor);
+  renderMentorCard(mentor);
 }
 
-function appendMentorCard(mentor) {
+function renderMentorCard(mentor) {
 
   const template =
     document.getElementById('mentor-card-tpl');
@@ -196,112 +137,91 @@ function appendMentorCard(mentor) {
   const nameInput =
     card.querySelector('.mentor-name-input');
 
-  const capInput =
+  const capacityInput =
     card.querySelector('.mentor-capacity');
 
   const removeBtn =
     card.querySelector('.remove-mentor-btn');
-
-  nameInput.value = mentor.name;
-
-  capInput.value = mentor.capacity;
 
   const checkboxes =
     card.querySelectorAll(
       '.mentor-program-checkbox'
     );
 
-  checkboxes.forEach(cb => {
-
-    cb.addEventListener(
-      'change',
-      () => {
-
-        mentor.programs =
-          Array.from(checkboxes)
-            .filter(x => x.checked)
-            .map(x => x.value);
-
-        cb.parentElement.classList.toggle(
-          'checked',
-          cb.checked
-        );
-      }
-    );
+  nameInput.addEventListener('input', e => {
+    mentor.name = e.target.value.trim();
   });
 
-  nameInput.addEventListener(
+  capacityInput.addEventListener(
     'input',
-    () => {
-      mentor.name =
-        nameInput.value.trim();
-    }
-  );
-
-  capInput.addEventListener(
-    'input',
-    () => {
+    e => {
 
       mentor.capacity =
-        Math.max(
-          1,
-          parseInt(capInput.value) || 1
-        );
+        parseInt(e.target.value) || 1;
     }
   );
 
-  removeBtn.addEventListener(
-    'click',
-    () => {
+  checkboxes.forEach(cb => {
 
-      STATE.mentors =
-        STATE.mentors.filter(
-          m => m.id !== mentor.id
-        );
+    cb.addEventListener('change', () => {
 
-      card.remove();
+      mentor.programs =
+        Array.from(checkboxes)
+          .filter(x => x.checked)
+          .map(x => x.value);
+    });
+  });
 
-      toast(
-        'Mentor removed',
-        'info'
+  removeBtn.addEventListener('click', () => {
+
+    STATE.mentors =
+      STATE.mentors.filter(
+        m => m.id !== mentor.id
       );
-    }
-  );
 
-  mentorsList.appendChild(card);
+    card.remove();
+
+    toast('Mentor removed');
+  });
+
+  document
+    .getElementById('mentors-list')
+    .appendChild(card);
 }
 
 /* =====================================================
    STUDENTS
 ===================================================== */
 
-const tbody =
-  document.getElementById('students-tbody');
-
-const addStudentRowBtn =
-  document.getElementById(
-    'add-student-row-btn'
-  );
-
-const clearStudentsBtn =
-  document.getElementById(
-    'clear-students-btn'
-  );
-
 function initStudents() {
 
-  addStudentRowBtn.addEventListener(
+  const addBtn =
+    document.getElementById(
+      'add-student-row-btn'
+    );
+
+  const clearBtn =
+    document.getElementById(
+      'clear-students-btn'
+    );
+
+  addBtn.addEventListener(
     'click',
     () => addStudentRow()
   );
 
-  clearStudentsBtn.addEventListener(
+  clearBtn.addEventListener(
     'click',
     clearStudents
   );
 }
 
 function addStudentRow(data = {}) {
+
+  const tbody =
+    document.getElementById(
+      'students-tbody'
+    );
 
   const student = {
     id: 'S' + (++studentCounter),
@@ -365,11 +285,13 @@ function addStudentRow(data = {}) {
     </td>
 
     <td>
-      <button class="btn-icon remove-row-btn">
-        <i class="fas fa-trash"></i>
+      <button class="remove-row-btn">
+        Delete
       </button>
     </td>
   `;
+
+  tbody.appendChild(tr);
 
   tr.querySelector('.s-sales').value =
     student.salesType;
@@ -420,8 +342,6 @@ function addStudentRow(data = {}) {
 
       tr.remove();
     });
-
-  tbody.appendChild(tr);
 }
 
 function clearStudents() {
@@ -434,38 +354,34 @@ function clearStudents() {
 
   studentCounter = 0;
 
-  tbody.innerHTML = '';
+  document.getElementById(
+    'students-tbody'
+  ).innerHTML = '';
 
-  toast(
-    'Students cleared',
-    'info'
-  );
+  toast('Students cleared');
 }
 
 /* =====================================================
    CSV IMPORT
 ===================================================== */
 
-const importCsvBtn =
-  document.getElementById(
-    'import-csv-btn'
-  );
-
-const csvFileInput =
-  document.getElementById(
-    'csv-file-input'
-  );
-
 function initCSVImport() {
 
-  importCsvBtn.addEventListener(
-    'click',
-    () => {
-      csvFileInput.click();
-    }
-  );
+  const btn =
+    document.getElementById(
+      'import-csv-btn'
+    );
 
-  csvFileInput.addEventListener(
+  const input =
+    document.getElementById(
+      'csv-file-input'
+    );
+
+  btn.addEventListener('click', () => {
+    input.click();
+  });
+
+  input.addEventListener(
     'change',
     handleCSVImport
   );
@@ -478,88 +394,63 @@ function handleCSVImport(event) {
 
   if (!file) return;
 
-  const reader =
-    new FileReader();
+  const reader = new FileReader();
 
   reader.onload = function(e) {
 
-    const text =
-      e.target.result;
+    const text = e.target.result;
 
-    const lines = text
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => l);
+    const lines =
+      text.split('\n');
 
     let imported = 0;
 
     lines.forEach((line, index) => {
 
-      if (
-        index === 0 &&
-        line.toLowerCase().includes('roll')
-      ) {
-        return;
-      }
+      if (index === 0) return;
 
-      const cols = line
-        .split(',')
-        .map(c =>
-          c.trim().replace(/^"|"$/g, '')
-        );
+      if (!line.trim()) return;
 
-      const [
-        rollNumber,
-        salesType,
-        paymentCategory,
-        program,
-        existingMentor
-      ] = cols;
-
-      if (!rollNumber) return;
+      const cols =
+        line.split(',');
 
       addStudentRow({
-        rollNumber,
+        rollNumber:
+          cols[0]?.trim(),
         salesType:
-          normalizeSalesType(
-            salesType
-          ),
+          cols[1]?.trim() || 'Channel',
         paymentCategory:
-          normalizePayment(
-            paymentCategory
-          ),
+          cols[2]?.trim() || 'Annual',
         program:
-          program || PROGRAMS[0],
+          cols[3]?.trim() || PROGRAMS[0],
         existingMentor:
-          existingMentor || ''
+          cols[4]?.trim() || ''
       });
 
       imported++;
     });
 
     toast(
-      `${imported} students imported`,
+      imported + ' learners imported',
       'success'
     );
-
-    csvFileInput.value = '';
   };
 
   reader.readAsText(file);
 }
 
 /* =====================================================
-   SMART ALLOCATION ENGINE
+   ALLOCATION ENGINE
 ===================================================== */
-
-const runAllocationBtn =
-  document.getElementById(
-    'run-allocation-btn'
-  );
 
 function initAllocation() {
 
-  runAllocationBtn.addEventListener(
+  const btn =
+    document.getElementById(
+      'run-allocation-btn'
+    );
+
+  btn.addEventListener(
     'click',
     runAllocation
   );
@@ -567,17 +458,14 @@ function initAllocation() {
 
 function runAllocation() {
 
-  const validMentors =
+  const mentors =
     STATE.mentors.filter(
       m => m.name
     );
 
-  if (validMentors.length === 0) {
+  if (mentors.length === 0) {
 
-    toast(
-      'Please add mentors',
-      'error'
-    );
+    toast('Please add mentors');
 
     return;
   }
@@ -589,34 +477,31 @@ function runAllocation() {
 
   if (students.length === 0) {
 
-    toast(
-      'Please add students',
-      'error'
-    );
+    toast('Please add students');
 
     return;
   }
 
-  const counts = {};
+  const assigned = [];
+  const unallocated = [];
 
-  validMentors.forEach(m => {
+  const mentorStats = {};
 
-    counts[m.id] = {
+  mentors.forEach(m => {
+
+    mentorStats[m.name] = {
+      total: 0,
       channel: 0,
       inside: 0,
       annual: 0,
       full: 0,
-      semester: 0,
-      total: 0
+      semester: 0
     };
   });
 
-  const assigned = [];
-  const unallocated = [];
-
-  /* =====================================
-     LOCK EXISTING
-  ===================================== */
+  /* =========================================
+     LOCKED STUDENTS
+  ========================================= */
 
   students.forEach(student => {
 
@@ -625,7 +510,7 @@ function runAllocation() {
     }
 
     const mentor =
-      validMentors.find(
+      mentors.find(
         m =>
           m.name.trim().toLowerCase() ===
           student.existingMentor
@@ -634,73 +519,42 @@ function runAllocation() {
       );
 
     if (!mentor) {
-
-      unallocated.push({
-        ...student,
-        reason:
-          'Existing mentor not found'
-      });
-
       return;
     }
 
-    const stKey =
-      student.salesType.toLowerCase();
+    const stat =
+      mentorStats[mentor.name];
 
-    const pcKey =
-      student.paymentCategory.toLowerCase();
+    stat.total++;
 
-    counts[mentor.id][stKey]++;
-    counts[mentor.id][pcKey]++;
-    counts[mentor.id].total++;
+    stat[
+      student.salesType.toLowerCase()
+    ]++;
+
+    stat[
+      student.paymentCategory.toLowerCase()
+    ]++;
 
     assigned.push({
-      rollNumber:
-        student.rollNumber,
-      mentorName:
-        mentor.name,
-      salesType:
-        student.salesType,
-      paymentCategory:
-        student.paymentCategory,
-      program:
-        student.program,
+      ...student,
+      mentor: mentor.name,
       locked: true
     });
   });
 
-  /* =====================================
+  /* =========================================
      NEW STUDENTS
-  ===================================== */
+  ========================================= */
 
   const newStudents =
     students.filter(
       s => !s.existingMentor
     );
 
-  newStudents.sort((a, b) => {
-
-    const scoreA =
-      (a.salesType === 'Inside' ? 50 : 0) +
-      (a.paymentCategory === 'Full' ? 40 : 0);
-
-    const scoreB =
-      (b.salesType === 'Inside' ? 50 : 0) +
-      (b.paymentCategory === 'Full' ? 40 : 0);
-
-    return scoreB - scoreA;
-  });
-
   newStudents.forEach(student => {
 
-    const stKey =
-      student.salesType.toLowerCase();
-
-    const pcKey =
-      student.paymentCategory.toLowerCase();
-
-    const eligibleMentors =
-      validMentors.filter(m => {
+    const eligible =
+      mentors.filter(m => {
 
         if (
           m.programs.length > 0 &&
@@ -711,134 +565,83 @@ function runAllocation() {
           return false;
         }
 
-        const c =
-          counts[m.id];
-
-        if (
-          c.total >= m.capacity
-        ) {
-          return false;
-        }
-
-        return true;
+        return (
+          mentorStats[m.name].total <
+          m.capacity
+        );
       });
 
-    if (eligibleMentors.length === 0) {
+    if (eligible.length === 0) {
 
-      unallocated.push({
-        ...student,
-        reason:
-          'No mentor capacity'
-      });
+      unallocated.push(student);
 
       return;
     }
 
-    let bestMentor = null;
-    let bestScore = Infinity;
+    eligible.sort((a, b) => {
 
-    eligibleMentors.forEach(m => {
+      const aStats =
+        mentorStats[a.name];
 
-      const c =
-        counts[m.id];
+      const bStats =
+        mentorStats[b.name];
 
-      const cap =
-        m.capacity;
+      const type =
+        student.salesType.toLowerCase();
 
-      const stLimit =
-        getQuota(
-          cap,
-          LIMITS[stKey]
-        );
+      const payment =
+        student.paymentCategory.toLowerCase();
 
-      const pcLimit =
-        getQuota(
-          cap,
-          LIMITS[pcKey]
-        );
+      const aScore =
+        aStats.total +
+        aStats[type] * 2 +
+        aStats[payment] * 3;
 
-      const totalRatio =
-        c.total / cap;
+      const bScore =
+        bStats.total +
+        bStats[type] * 2 +
+        bStats[payment] * 3;
 
-      const salesRatio =
-        c[stKey] / stLimit;
-
-      const paymentRatio =
-        c[pcKey] / pcLimit;
-
-      let penalty = 0;
-
-      if (
-        c[stKey] >= stLimit
-      ) {
-        penalty += 1000;
-      }
-
-      if (
-        c[pcKey] >= pcLimit
-      ) {
-        penalty += 1000;
-      }
-
-      const score =
-        (totalRatio * 100) +
-        (salesRatio * 90) +
-        (paymentRatio * 90) +
-        penalty;
-
-      if (score < bestScore) {
-
-        bestScore = score;
-        bestMentor = m;
-      }
+      return aScore - bScore;
     });
 
-    if (bestMentor) {
+    const mentor =
+      eligible[0];
 
-      counts[bestMentor.id][stKey]++;
-      counts[bestMentor.id][pcKey]++;
-      counts[bestMentor.id].total++;
+    mentorStats[mentor.name].total++;
 
-      assigned.push({
-        rollNumber:
-          student.rollNumber,
-        mentorName:
-          bestMentor.name,
-        salesType:
-          student.salesType,
-        paymentCategory:
-          student.paymentCategory,
-        program:
-          student.program,
-        locked: false
-      });
+    mentorStats[mentor.name][
+      student.salesType.toLowerCase()
+    ]++;
 
-    } else {
+    mentorStats[mentor.name][
+      student.paymentCategory.toLowerCase()
+    ]++;
 
-      unallocated.push({
-        ...student,
-        reason:
-          'Unable to allocate'
-      });
-    }
+    assigned.push({
+      ...student,
+      mentor: mentor.name,
+      locked: false
+    });
   });
 
   STATE.lastResults = {
     assigned,
     unallocated,
-    counts,
-    mentors: validMentors
+    mentorStats
   };
 
   renderResults();
 
-  switchToResultsTab();
+  document
+    .querySelector(
+      '[data-tab="results"]'
+    )
+    .click();
 
   toast(
-    `Allocated ${assigned.length} learners`,
-    unallocated.length > 0
-      ? 'warn'
-      : 'success'
+    'Allocation completed',
+    'success'
   );
 }
 
@@ -848,24 +651,36 @@ function runAllocation() {
 
 function renderResults() {
 
-  const summaryCards =
+  const summary =
     document.getElementById(
       'summary-cards'
     );
 
-  const mentorBlocks =
+  const blocks =
     document.getElementById(
       'mentor-result-blocks'
     );
 
+  const unallocatedSection =
+    document.getElementById(
+      'unallocated-section'
+    );
+
+  const unallocatedList =
+    document.getElementById(
+      'unallocated-list'
+    );
+
+  summary.innerHTML = '';
+  blocks.innerHTML = '';
+  unallocatedList.innerHTML = '';
+
   const {
     assigned,
-    mentors,
-    counts,
     unallocated
   } = STATE.lastResults;
 
-  summaryCards.innerHTML = `
+  summary.innerHTML = `
     <div class="summary-card">
       <div class="sc-num">
         ${assigned.length}
@@ -885,155 +700,106 @@ function renderResults() {
     </div>
   `;
 
-  mentorBlocks.innerHTML = '';
+  const mentorMap = {};
 
-  mentors.forEach(m => {
+  assigned.forEach(a => {
 
-    const stats =
-      counts[m.id];
+    if (!mentorMap[a.mentor]) {
+      mentorMap[a.mentor] = [];
+    }
 
-    const mentorStudents =
-      assigned.filter(
-        a =>
-          a.mentorName === m.name
-      );
+    mentorMap[a.mentor].push(a);
+  });
 
-    const div =
-      document.createElement('div');
+  Object.keys(mentorMap)
+    .forEach(name => {
 
-    div.className =
-      'mentor-result-card';
+      const students =
+        mentorMap[name];
 
-    div.innerHTML = `
-      <div class="mrc-header">
-        <h3>${m.name}</h3>
+      const div =
+        document.createElement('div');
 
-        <span>
-          ${stats.total}
-          /
-          ${m.capacity}
-        </span>
-      </div>
+      div.className =
+        'mentor-result-card';
 
-      <div class="mrc-body">
+      div.innerHTML = `
+        <div class="mrc-header">
+          <h3>${name}</h3>
+          <span>
+            ${students.length}
+          </span>
+        </div>
 
-        <div class="student-mini-list">
+        <div class="mrc-body">
 
-          ${mentorStudents.map(s => `
-
+          ${students.map(s => `
             <div class="student-chip">
 
               ${s.rollNumber}
               •
               ${s.program}
+              •
+              ${s.salesType}
+              •
+              ${s.paymentCategory}
 
-              ${s.locked
-                ? '<span style="color:#16a34a"> (Locked)</span>'
-                : ''
+              ${
+                s.locked
+                  ? '<span style="color:green">(Locked)</span>'
+                  : ''
               }
 
             </div>
-
           `).join('')}
 
         </div>
+      `;
 
-      </div>
-    `;
-
-    mentorBlocks.appendChild(div);
-  });
-}
-
-/* =====================================================
-   SWITCH TAB
-===================================================== */
-
-function switchToResultsTab() {
-
-  document.querySelectorAll('.tab-btn')
-    .forEach(b => {
-      b.classList.remove('active');
+      blocks.appendChild(div);
     });
 
-  document.querySelectorAll('.tab-content')
-    .forEach(t => {
-      t.classList.remove('active');
+  if (unallocated.length > 0) {
+
+    unallocatedSection.style.display =
+      'block';
+
+    unallocated.forEach(s => {
+
+      const div =
+        document.createElement('div');
+
+      div.className =
+        'student-chip';
+
+      div.innerHTML = `
+        ${s.rollNumber}
+        •
+        ${s.program}
+      `;
+
+      unallocatedList.appendChild(div);
     });
 
-  document
-    .querySelector(
-      '[data-tab="results"]'
-    )
-    .classList.add('active');
+  } else {
 
-  document
-    .getElementById(
-      'tab-results'
-    )
-    .classList.add('active');
-}
-
-/* =====================================================
-   RESET
-===================================================== */
-
-const resetBtn =
-  document.getElementById(
-    'reset-day-btn'
-  );
-
-function initReset() {
-
-  resetBtn.addEventListener(
-    'click',
-    resetDay
-  );
-}
-
-function resetDay() {
-
-  if (
-    !confirm(
-      'Reset all data?'
-    )
-  ) {
-    return;
+    unallocatedSection.style.display =
+      'none';
   }
-
-  STATE.students = [];
-  STATE.lastResults = null;
-
-  studentCounter = 0;
-
-  tbody.innerHTML = '';
-
-  document.getElementById(
-    'summary-cards'
-  ).innerHTML = '';
-
-  document.getElementById(
-    'mentor-result-blocks'
-  ).innerHTML = '';
-
-  toast(
-    'Reset completed',
-    'success'
-  );
 }
 
 /* =====================================================
-   EXPORT
+   EXPORT CSV
 ===================================================== */
-
-const exportBtn =
-  document.getElementById(
-    'export-results-btn'
-  );
 
 function initExport() {
 
-  exportBtn.addEventListener(
+  const btn =
+    document.getElementById(
+      'export-results-btn'
+    );
+
+  btn.addEventListener(
     'click',
     exportCSV
   );
@@ -1043,10 +809,7 @@ function exportCSV() {
 
   if (!STATE.lastResults) {
 
-    toast(
-      'No results available',
-      'warn'
-    );
+    toast('No results found');
 
     return;
   }
@@ -1065,7 +828,7 @@ function exportCSV() {
 
       rows.push([
         a.rollNumber,
-        a.mentorName,
+        a.mentor,
         a.salesType,
         a.paymentCategory,
         a.program,
@@ -1075,7 +838,7 @@ function exportCSV() {
 
   const csv =
     rows.map(r =>
-      r.map(c => `"${c}"`).join(',')
+      r.map(x => `"${x}"`).join(',')
     ).join('\n');
 
   const blob =
@@ -1098,9 +861,31 @@ function exportCSV() {
 
   URL.revokeObjectURL(url);
 
-  toast(
-    'CSV Exported',
-    'success'
+  toast('CSV exported');
+}
+
+/* =====================================================
+   RESET
+===================================================== */
+
+function initReset() {
+
+  const btn =
+    document.getElementById(
+      'reset-day-btn'
+    );
+
+  btn.addEventListener(
+    'click',
+    () => {
+
+      if (
+        confirm('Reset complete app?')
+      ) {
+
+        location.reload();
+      }
+    }
   );
 }
 
@@ -1117,12 +902,11 @@ document.addEventListener(
     initStudents();
     initCSVImport();
     initAllocation();
-    initReset();
     initExport();
+    initReset();
 
     console.log(
-      'Mentor Allocator Loaded Successfully'
+      'Mentor Allocator Ready'
     );
   }
 );
-```
