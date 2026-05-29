@@ -1,11 +1,12 @@
+```javascript
 /* =====================================================
    FINAL COMPLETE MENTOR ALLOCATOR
    WITH:
    ✔ Roll Number Support
    ✔ Existing Mentor Lock Support
+   ✔ Smart Balanced Allocation
+   ✔ Equal Distribution Engine
    ✔ Multi Program Support
-   ✔ Better Program UI
-   ✔ Balanced Allocation Engine
    ✔ CSV Import
    ✔ CSV Export
 ===================================================== */
@@ -87,19 +88,38 @@ function getQuota(capacity, ratio) {
   return Math.max(1, Math.round(capacity * ratio));
 }
 
-function barClass(used, limit, cap) {
+function normalizeSalesType(value) {
 
-  const ratio = used / cap;
+  if (!value) return 'Channel';
 
-  if (ratio > limit) return 'over';
+  value = value.toLowerCase();
 
-  if (ratio > limit * 0.8) return 'warn';
+  if (value.includes('inside')) {
+    return 'Inside';
+  }
 
-  return 'ok';
+  return 'Channel';
+}
+
+function normalizePayment(value) {
+
+  if (!value) return 'Annual';
+
+  value = value.toLowerCase();
+
+  if (value.includes('semester')) {
+    return 'Semester';
+  }
+
+  if (value.includes('full')) {
+    return 'Full';
+  }
+
+  return 'Annual';
 }
 
 /* =====================================================
-   TAB NAVIGATION
+   TABS
 ===================================================== */
 
 function initTabs() {
@@ -115,21 +135,17 @@ function initTabs() {
           });
 
         document.querySelectorAll('.tab-content')
-          .forEach(tab => {
-            tab.classList.remove('active');
+          .forEach(t => {
+            t.classList.remove('active');
           });
 
         btn.classList.add('active');
 
-        const tabId =
-          'tab-' + btn.dataset.tab;
-
-        const tab =
-          document.getElementById(tabId);
-
-        if (tab) {
-          tab.classList.add('active');
-        }
+        document
+          .getElementById(
+            'tab-' + btn.dataset.tab
+          )
+          .classList.add('active');
       });
     });
 }
@@ -138,31 +154,26 @@ function initTabs() {
    MENTORS
 ===================================================== */
 
-const addMentorBtn =
-  document.getElementById('add-mentor-btn');
-
 const mentorsList =
   document.getElementById('mentors-list');
 
+const addMentorBtn =
+  document.getElementById('add-mentor-btn');
+
 function initMentors() {
 
-  if (addMentorBtn) {
-
-    addMentorBtn.addEventListener(
-      'click',
-      addMentor
-    );
-  }
+  addMentorBtn.addEventListener(
+    'click',
+    addMentor
+  );
 }
 
 function addMentor() {
 
-  const id = 'M' + (++mentorCounter);
-
   const mentor = {
-    id,
+    id: 'M' + (++mentorCounter),
     name: '',
-    capacity: 10,
+    capacity: 100,
     programs: []
   };
 
@@ -200,20 +211,20 @@ function appendMentorCard(mentor) {
       '.mentor-program-checkbox'
     );
 
-  checkboxes.forEach(checkbox => {
+  checkboxes.forEach(cb => {
 
-    checkbox.addEventListener(
+    cb.addEventListener(
       'change',
       () => {
 
         mentor.programs =
           Array.from(checkboxes)
-            .filter(cb => cb.checked)
-            .map(cb => cb.value);
+            .filter(x => x.checked)
+            .map(x => x.value);
 
-        checkbox.parentElement.classList.toggle(
+        cb.parentElement.classList.toggle(
           'checked',
-          checkbox.checked
+          cb.checked
         );
       }
     );
@@ -231,10 +242,11 @@ function appendMentorCard(mentor) {
     'input',
     () => {
 
-      mentor.capacity = Math.max(
-        1,
-        parseInt(capInput.value) || 1
-      );
+      mentor.capacity =
+        Math.max(
+          1,
+          parseInt(capInput.value) || 1
+        );
     }
   );
 
@@ -249,7 +261,10 @@ function appendMentorCard(mentor) {
 
       card.remove();
 
-      toast('Mentor removed', 'info');
+      toast(
+        'Mentor removed',
+        'info'
+      );
     }
   );
 
@@ -275,35 +290,21 @@ const clearStudentsBtn =
 
 function initStudents() {
 
-  if (addStudentRowBtn) {
+  addStudentRowBtn.addEventListener(
+    'click',
+    () => addStudentRow()
+  );
 
-    addStudentRowBtn.addEventListener(
-      'click',
-      () => {
-        addStudentRow();
-      }
-    );
-  }
-
-  if (clearStudentsBtn) {
-
-    clearStudentsBtn.addEventListener(
-      'click',
-      clearStudents
-    );
-  }
-
-  for (let i = 0; i < 3; i++) {
-    addStudentRow();
-  }
+  clearStudentsBtn.addEventListener(
+    'click',
+    clearStudents
+  );
 }
 
 function addStudentRow(data = {}) {
 
-  const id = 'S' + (++studentCounter);
-
   const student = {
-    id,
+    id: 'S' + (++studentCounter),
     rollNumber:
       data.rollNumber || '',
     salesType:
@@ -321,16 +322,13 @@ function addStudentRow(data = {}) {
   const tr =
     document.createElement('tr');
 
-  tr.dataset.studentId = id;
-
   tr.innerHTML = `
     <td>${studentCounter}</td>
 
     <td>
       <input type="text"
              class="s-roll"
-             placeholder="Roll Number"
-             value="${student.rollNumber}" />
+             value="${student.rollNumber}">
     </td>
 
     <td>
@@ -363,8 +361,7 @@ function addStudentRow(data = {}) {
     <td>
       <input type="text"
              class="s-existing-mentor"
-             placeholder="Existing Mentor"
-             value="${student.existingMentor}" />
+             value="${student.existingMentor}">
     </td>
 
     <td>
@@ -418,7 +415,7 @@ function addStudentRow(data = {}) {
 
       STATE.students =
         STATE.students.filter(
-          s => s.id !== id
+          s => s.id !== student.id
         );
 
       tr.remove();
@@ -427,13 +424,11 @@ function addStudentRow(data = {}) {
   tbody.appendChild(tr);
 }
 
-/* =====================================================
-   CLEAR STUDENTS
-===================================================== */
-
 function clearStudents() {
 
-  if (!confirm('Clear all students?')) return;
+  if (!confirm('Clear all students?')) {
+    return;
+  }
 
   STATE.students = [];
 
@@ -441,7 +436,10 @@ function clearStudents() {
 
   tbody.innerHTML = '';
 
-  toast('Students cleared', 'info');
+  toast(
+    'Students cleared',
+    'info'
+  );
 }
 
 /* =====================================================
@@ -449,14 +447,16 @@ function clearStudents() {
 ===================================================== */
 
 const importCsvBtn =
-  document.getElementById('import-csv-btn');
+  document.getElementById(
+    'import-csv-btn'
+  );
 
 const csvFileInput =
-  document.getElementById('csv-file-input');
+  document.getElementById(
+    'csv-file-input'
+  );
 
 function initCSVImport() {
-
-  if (!importCsvBtn || !csvFileInput) return;
 
   importCsvBtn.addEventListener(
     'click',
@@ -478,16 +478,18 @@ function handleCSVImport(event) {
 
   if (!file) return;
 
-  const reader = new FileReader();
+  const reader =
+    new FileReader();
 
   reader.onload = function(e) {
 
-    const text = e.target.result;
+    const text =
+      e.target.result;
 
     const lines = text
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => line);
+      .map(l => l.trim())
+      .filter(l => l);
 
     let imported = 0;
 
@@ -519,9 +521,13 @@ function handleCSVImport(event) {
       addStudentRow({
         rollNumber,
         salesType:
-          normalizeSalesType(salesType),
+          normalizeSalesType(
+            salesType
+          ),
         paymentCategory:
-          normalizePayment(paymentCategory),
+          normalizePayment(
+            paymentCategory
+          ),
         program:
           program || PROGRAMS[0],
         existingMentor:
@@ -542,38 +548,8 @@ function handleCSVImport(event) {
   reader.readAsText(file);
 }
 
-function normalizeSalesType(value) {
-
-  if (!value) return 'Channel';
-
-  value = value.toLowerCase();
-
-  if (value.includes('inside')) {
-    return 'Inside';
-  }
-
-  return 'Channel';
-}
-
-function normalizePayment(value) {
-
-  if (!value) return 'Annual';
-
-  value = value.toLowerCase();
-
-  if (value.includes('semester')) {
-    return 'Semester';
-  }
-
-  if (value.includes('full')) {
-    return 'Full';
-  }
-
-  return 'Annual';
-}
-
 /* =====================================================
-   ALLOCATION ENGINE
+   SMART ALLOCATION ENGINE
 ===================================================== */
 
 const runAllocationBtn =
@@ -583,19 +559,18 @@ const runAllocationBtn =
 
 function initAllocation() {
 
-  if (runAllocationBtn) {
-
-    runAllocationBtn.addEventListener(
-      'click',
-      runAllocation
-    );
-  }
+  runAllocationBtn.addEventListener(
+    'click',
+    runAllocation
+  );
 }
 
 function runAllocation() {
 
   const validMentors =
-    STATE.mentors.filter(m => m.name);
+    STATE.mentors.filter(
+      m => m.name
+    );
 
   if (validMentors.length === 0) {
 
@@ -639,21 +614,24 @@ function runAllocation() {
   const assigned = [];
   const unallocated = [];
 
-  /* =========================================
-     EXISTING LOCKED MENTORS
-  ========================================= */
+  /* =====================================
+     LOCK EXISTING
+  ===================================== */
 
   students.forEach(student => {
 
-    if (!student.existingMentor) return;
+    if (!student.existingMentor) {
+      return;
+    }
 
-    const mentor = validMentors.find(
-      m =>
-        m.name.trim().toLowerCase() ===
-        student.existingMentor
-          .trim()
-          .toLowerCase()
-    );
+    const mentor =
+      validMentors.find(
+        m =>
+          m.name.trim().toLowerCase() ===
+          student.existingMentor
+            .trim()
+            .toLowerCase()
+      );
 
     if (!mentor) {
 
@@ -673,9 +651,7 @@ function runAllocation() {
       student.paymentCategory.toLowerCase();
 
     counts[mentor.id][stKey]++;
-
     counts[mentor.id][pcKey]++;
-
     counts[mentor.id].total++;
 
     assigned.push({
@@ -693,14 +669,27 @@ function runAllocation() {
     });
   });
 
-  /* =========================================
-     ONLY NEW STUDENTS
-  ========================================= */
+  /* =====================================
+     NEW STUDENTS
+  ===================================== */
 
   const newStudents =
     students.filter(
       s => !s.existingMentor
     );
+
+  newStudents.sort((a, b) => {
+
+    const scoreA =
+      (a.salesType === 'Inside' ? 50 : 0) +
+      (a.paymentCategory === 'Full' ? 40 : 0);
+
+    const scoreB =
+      (b.salesType === 'Inside' ? 50 : 0) +
+      (b.paymentCategory === 'Full' ? 40 : 0);
+
+    return scoreB - scoreA;
+  });
 
   newStudents.forEach(student => {
 
@@ -722,9 +711,12 @@ function runAllocation() {
           return false;
         }
 
-        const c = counts[m.id];
+        const c =
+          counts[m.id];
 
-        if (c.total >= m.capacity) {
+        if (
+          c.total >= m.capacity
+        ) {
           return false;
         }
 
@@ -743,33 +735,60 @@ function runAllocation() {
     }
 
     let bestMentor = null;
-
     let bestScore = Infinity;
 
     eligibleMentors.forEach(m => {
 
-      const c = counts[m.id];
+      const c =
+        counts[m.id];
 
-      const cap = m.capacity;
+      const cap =
+        m.capacity;
+
+      const stLimit =
+        getQuota(
+          cap,
+          LIMITS[stKey]
+        );
+
+      const pcLimit =
+        getQuota(
+          cap,
+          LIMITS[pcKey]
+        );
 
       const totalRatio =
         c.total / cap;
 
       const salesRatio =
-        c[stKey] / cap;
+        c[stKey] / stLimit;
 
       const paymentRatio =
-        c[pcKey] / cap;
+        c[pcKey] / pcLimit;
+
+      let penalty = 0;
+
+      if (
+        c[stKey] >= stLimit
+      ) {
+        penalty += 1000;
+      }
+
+      if (
+        c[pcKey] >= pcLimit
+      ) {
+        penalty += 1000;
+      }
 
       const score =
         (totalRatio * 100) +
-        (salesRatio * 60) +
-        (paymentRatio * 60);
+        (salesRatio * 90) +
+        (paymentRatio * 90) +
+        penalty;
 
       if (score < bestScore) {
 
         bestScore = score;
-
         bestMentor = m;
       }
     });
@@ -777,9 +796,7 @@ function runAllocation() {
     if (bestMentor) {
 
       counts[bestMentor.id][stKey]++;
-
       counts[bestMentor.id][pcKey]++;
-
       counts[bestMentor.id].total++;
 
       assigned.push({
@@ -798,7 +815,11 @@ function runAllocation() {
 
     } else {
 
-      unallocated.push(student);
+      unallocated.push({
+        ...student,
+        reason:
+          'Unable to allocate'
+      });
     }
   });
 
@@ -839,8 +860,8 @@ function renderResults() {
 
   const {
     assigned,
-    counts,
     mentors,
+    counts,
     unallocated
   } = STATE.lastResults;
 
@@ -868,7 +889,8 @@ function renderResults() {
 
   mentors.forEach(m => {
 
-    const stats = counts[m.id];
+    const stats =
+      counts[m.id];
 
     const mentorStudents =
       assigned.filter(
@@ -884,7 +906,6 @@ function renderResults() {
 
     div.innerHTML = `
       <div class="mrc-header">
-
         <h3>${m.name}</h3>
 
         <span>
@@ -892,7 +913,6 @@ function renderResults() {
           /
           ${m.capacity}
         </span>
-
       </div>
 
       <div class="mrc-body">
@@ -948,7 +968,9 @@ function switchToResultsTab() {
     .classList.add('active');
 
   document
-    .getElementById('tab-results')
+    .getElementById(
+      'tab-results'
+    )
     .classList.add('active');
 }
 
@@ -963,21 +985,23 @@ const resetBtn =
 
 function initReset() {
 
-  if (resetBtn) {
-
-    resetBtn.addEventListener(
-      'click',
-      resetDay
-    );
-  }
+  resetBtn.addEventListener(
+    'click',
+    resetDay
+  );
 }
 
 function resetDay() {
 
-  if (!confirm('Reset all data?')) return;
+  if (
+    !confirm(
+      'Reset all data?'
+    )
+  ) {
+    return;
+  }
 
   STATE.students = [];
-
   STATE.lastResults = null;
 
   studentCounter = 0;
@@ -999,7 +1023,7 @@ function resetDay() {
 }
 
 /* =====================================================
-   EXPORT CSV
+   EXPORT
 ===================================================== */
 
 const exportBtn =
@@ -1009,13 +1033,10 @@ const exportBtn =
 
 function initExport() {
 
-  if (exportBtn) {
-
-    exportBtn.addEventListener(
-      'click',
-      exportCSV
-    );
-  }
+  exportBtn.addEventListener(
+    'click',
+    exportCSV
+  );
 }
 
 function exportCSV() {
@@ -1052,18 +1073,15 @@ function exportCSV() {
       ]);
     });
 
-  const csv = rows
-    .map(r =>
+  const csv =
+    rows.map(r =>
       r.map(c => `"${c}"`).join(',')
-    )
-    .join('\n');
+    ).join('\n');
 
-  const blob = new Blob(
-    [csv],
-    {
+  const blob =
+    new Blob([csv], {
       type: 'text/csv'
-    }
-  );
+    });
 
   const url =
     URL.createObjectURL(blob);
@@ -1087,7 +1105,7 @@ function exportCSV() {
 }
 
 /* =====================================================
-   INITIALIZE
+   INIT
 ===================================================== */
 
 document.addEventListener(
@@ -1107,3 +1125,4 @@ document.addEventListener(
     );
   }
 );
+```
