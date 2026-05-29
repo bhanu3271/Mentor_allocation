@@ -72,6 +72,7 @@
         <button
           class="btn btn-outline btn-sm"
           id="add-mentor-btn"
+          type="button"
         >
           <i class="fas fa-plus"></i>
           Add Mentor
@@ -105,24 +106,29 @@
 
         <div class="header-actions">
 
+          <!-- IMPORT CSV -->
           <button
             class="btn btn-outline btn-sm"
             id="import-csv-btn"
+            type="button"
           >
             <i class="fas fa-file-import"></i>
             Import CSV
           </button>
 
+          <!-- IMPORTANT -->
           <input
             type="file"
             id="csv-file-input"
-            accept=".csv"
-            style="display:none"
+            accept=".csv,text/csv"
+            hidden
           />
 
+          <!-- ADD ROW -->
           <button
             class="btn btn-outline btn-sm"
             id="add-student-row-btn"
+            type="button"
           >
             <i class="fas fa-plus"></i>
             Add Row
@@ -143,8 +149,20 @@
 
         <br><br>
 
-        If ExistingMentor already has value,
-        allocation engine will NOT change it.
+        Example:
+
+        <br>
+
+        22001,Channel,Annual,MBA,Rahul
+
+        <br>
+
+        22002,Inside,Semester,MCA,
+
+        <br><br>
+
+        If ExistingMentor has value,
+        mentor will remain LOCKED and will not change.
 
       </p>
 
@@ -181,6 +199,7 @@
         <button
           class="btn btn-primary btn-lg"
           id="run-allocation-btn"
+          type="button"
         >
           <i class="fas fa-bolt"></i>
           Run Allocation
@@ -189,6 +208,7 @@
         <button
           class="btn btn-outline"
           id="clear-students-btn"
+          type="button"
         >
           <i class="fas fa-trash"></i>
           Clear All
@@ -219,6 +239,7 @@
           <button
             class="btn btn-outline btn-sm"
             id="export-results-btn"
+            type="button"
           >
             <i class="fas fa-file-export"></i>
             Export CSV
@@ -227,6 +248,7 @@
           <button
             class="btn btn-outline btn-sm"
             id="reset-day-btn"
+            type="button"
           >
             <i class="fas fa-redo"></i>
             Reset
@@ -236,11 +258,13 @@
 
       </div>
 
+      <!-- SUMMARY -->
       <div
         id="summary-cards"
         class="summary-cards"
       ></div>
 
+      <!-- RESULTS -->
       <div
         id="mentor-result-blocks"
         class="mentor-results"
@@ -290,7 +314,10 @@
         maxlength="50"
       />
 
-      <button class="btn-icon remove-mentor-btn">
+      <button
+        class="btn-icon remove-mentor-btn"
+        type="button"
+      >
         <i class="fas fa-times"></i>
       </button>
 
@@ -317,9 +344,7 @@
     <div class="mentor-program-section">
 
       <label class="program-label">
-
         Assign Programs
-
       </label>
 
       <div class="program-checkbox-grid">
@@ -402,8 +427,10 @@
 
 </template>
 
+<!-- TOAST -->
 <div id="toast-container"></div>
 
+<!-- JS -->
 <script src="js/app.js"></script>
 
 </body>
