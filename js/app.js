@@ -16,6 +16,17 @@ const PROGRAMS = [
   'MSc in Mathematics'
 ];
 
+const PAYMENT_CATEGORIES = [
+  'Annual',
+  'Full Payment',
+  'Semester'
+];
+
+const SALES_TYPES = [
+  'Channel',
+  'Inside'
+];
+
 /* =====================================================
    STATE
 ===================================================== */
@@ -47,9 +58,7 @@ function toast(msg, type = 'info') {
 
   container.appendChild(div);
 
-  setTimeout(() => {
-    div.remove();
-  }, 3000);
+  setTimeout(() => div.remove(), 3000);
 }
 
 function escapeHtml(value) {
@@ -69,6 +78,60 @@ function normalizeLower(value) {
   return normalize(value).toLowerCase();
 }
 
+function normalizePaymentCategory(value) {
+  const val = normalizeLower(value);
+
+  if (
+    val === 'full' ||
+    val === 'full payment' ||
+    val === 'fullpayment' ||
+    val === 'fu'
+  ) {
+    return 'Full Payment';
+  }
+
+  if (val === 'annual' || val === 'an') {
+    return 'Annual';
+  }
+
+  if (val === 'semester' || val === 'sem' || val === 'se') {
+    return 'Semester';
+  }
+
+  return 'Annual';
+}
+
+function normalizeSalesType(value) {
+  const val = normalizeLower(value);
+
+  if (val === 'inside' || val === 'in') {
+    return 'Inside';
+  }
+
+  if (val === 'channel' || val === 'ch') {
+    return 'Channel';
+  }
+
+  return 'Channel';
+}
+
+function getPaymentKey(paymentCategory) {
+  const value = normalizePaymentCategory(paymentCategory);
+
+  if (value === 'Full Payment') return 'fullPayment';
+  if (value === 'Semester') return 'semester';
+
+  return 'annual';
+}
+
+function getSalesKey(salesType) {
+  const value = normalizeSalesType(salesType);
+
+  if (value === 'Inside') return 'inside';
+
+  return 'channel';
+}
+
 /* =====================================================
    TABS
 ===================================================== */
@@ -76,34 +139,18 @@ function normalizeLower(value) {
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const tabName = btn.dataset.tab;
-
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('active');
-      });
-
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-      });
-
-      btn.classList.add('active');
-
-      const tab = document.getElementById('tab-' + tabName);
-
-      if (tab) {
-        tab.classList.add('active');
-      }
+      switchToTab(btn.dataset.tab);
     });
   });
 }
 
 function switchToTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.remove('active');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
   });
 
-  document.querySelectorAll('.tab-content').forEach(t => {
-    t.classList.remove('active');
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
   });
 
   const btn = document.querySelector(`[data-tab="${tabName}"]`);
@@ -201,8 +248,6 @@ function initStudents() {
 
   if (addBtn) {
     addBtn.addEventListener('click', () => addStudentRow());
-  } else {
-    console.error('Add student row button not found');
   }
 
   if (clearBtn) {
@@ -225,19 +270,11 @@ function addStudentRow(data = {}) {
   const student = {
     id: 'S' + (++studentCounter),
     rollNumber: normalize(data.rollNumber),
-    salesType: normalize(data.salesType) || 'Channel',
-    paymentCategory: normalize(data.paymentCategory) || 'Annual',
+    salesType: normalizeSalesType(data.salesType),
+    paymentCategory: normalizePaymentCategory(data.paymentCategory),
     program: normalize(data.program) || PROGRAMS[0],
     existingMentor: normalize(data.existingMentor)
   };
-
-  if (!['Channel', 'Inside'].includes(student.salesType)) {
-    student.salesType = 'Channel';
-  }
-
-  if (!['Annual', 'Full', 'Semester'].includes(student.paymentCategory)) {
-    student.paymentCategory = 'Annual';
-  }
 
   if (!PROGRAMS.includes(student.program)) {
     student.program = PROGRAMS[0];
@@ -248,7 +285,7 @@ function addStudentRow(data = {}) {
   const tr = document.createElement('tr');
 
   tr.innerHTML = `
-    <td class="row-num">${studentCounter}</td>
+    <td class="row-num"></td>
 
     <td>
       <input class="s-roll" value="${escapeHtml(student.rollNumber)}" />
@@ -256,16 +293,17 @@ function addStudentRow(data = {}) {
 
     <td>
       <select class="s-sales">
-        <option value="Channel">Channel</option>
-        <option value="Inside">Inside</option>
+        ${SALES_TYPES.map(type => `
+          <option value="${escapeHtml(type)}">${escapeHtml(type)}</option>
+        `).join('')}
       </select>
     </td>
 
     <td>
       <select class="s-payment">
-        <option value="Annual">Annual</option>
-        <option value="Full">Full</option>
-        <option value="Semester">Semester</option>
+        ${PAYMENT_CATEGORIES.map(type => `
+          <option value="${escapeHtml(type)}">${escapeHtml(type)}</option>
+        `).join('')}
       </select>
     </td>
 
@@ -295,11 +333,11 @@ function addStudentRow(data = {}) {
   });
 
   tr.querySelector('.s-sales').addEventListener('change', e => {
-    student.salesType = e.target.value;
+    student.salesType = normalizeSalesType(e.target.value);
   });
 
   tr.querySelector('.s-payment').addEventListener('change', e => {
-    student.paymentCategory = e.target.value;
+    student.paymentCategory = normalizePaymentCategory(e.target.value);
   });
 
   tr.querySelector('.s-program').addEventListener('change', e => {
@@ -347,10 +385,7 @@ function initCSVImport() {
   const btn = document.getElementById('import-csv-btn');
   const input = document.getElementById('csv-file-input');
 
-  if (!btn || !input) {
-    console.error('CSV import button or input not found');
-    return;
-  }
+  if (!btn || !input) return;
 
   btn.addEventListener('click', () => input.click());
   input.addEventListener('change', handleCSVImport);
@@ -437,24 +472,35 @@ function handleCSVImport(e) {
 function initAllocation() {
   const btn = document.getElementById('run-allocation-btn');
 
-  console.log('Run allocation button found:', btn);
-
   if (!btn) {
     console.error('Run Allocation button not found');
     return;
   }
 
-  btn.addEventListener('click', () => {
-    console.log('Run Allocation clicked');
-    runAllocation();
-  });
+  btn.addEventListener('click', runAllocation);
+}
+
+function createEmptyCount() {
+  return {
+    channel: 0,
+    inside: 0,
+    annual: 0,
+    fullPayment: 0,
+    semester: 0,
+    total: 0
+  };
+}
+
+function incrementCounts(countObj, student) {
+  const salesKey = getSalesKey(student.salesType);
+  const paymentKey = getPaymentKey(student.paymentCategory);
+
+  countObj[salesKey]++;
+  countObj[paymentKey]++;
+  countObj.total++;
 }
 
 function runAllocation() {
-  console.log('Run allocation started');
-  console.log('Mentors:', STATE.mentors);
-  console.log('Students:', STATE.students);
-
   const validMentors = STATE.mentors.filter(m => normalize(m.name));
 
   if (validMentors.length === 0) {
@@ -474,19 +520,12 @@ function runAllocation() {
   const counts = {};
 
   validMentors.forEach(m => {
-    counts[m.id] = {
-      channel: 0,
-      inside: 0,
-      annual: 0,
-      full: 0,
-      semester: 0,
-      total: 0
-    };
+    counts[m.id] = createEmptyCount();
   });
 
   const assigned = [];
   const unallocated = [];
-  const lockedStudentIds = new Set();
+  const processedStudentIds = new Set();
 
   /* =========================================
      LOCK EXISTING MENTOR STUDENTS
@@ -504,7 +543,8 @@ function runAllocation() {
         ...student,
         reason: `Existing mentor "${student.existingMentor}" not found`
       });
-      lockedStudentIds.add(student.id);
+
+      processedStudentIds.add(student.id);
       return;
     }
 
@@ -513,7 +553,8 @@ function runAllocation() {
         ...student,
         reason: `Existing mentor "${mentor.name}" capacity full`
       });
-      lockedStudentIds.add(student.id);
+
+      processedStudentIds.add(student.id);
       return;
     }
 
@@ -525,69 +566,75 @@ function runAllocation() {
       locked: true
     });
 
-    lockedStudentIds.add(student.id);
+    processedStudentIds.add(student.id);
   });
 
   /* =========================================
      NEW STUDENTS
+     Balanced by:
+     1. Total load
+     2. Payment category load
+     3. Sales type load
+     4. Capacity
+     5. Program eligibility
   ========================================= */
 
-  const newStudents = students.filter(s => !lockedStudentIds.has(s.id));
+  const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
   newStudents.forEach(student => {
-    const eligible = validMentors.filter(m => {
-      const mentorCount = counts[m.id];
+    const salesKey = getSalesKey(student.salesType);
+    const paymentKey = getPaymentKey(student.paymentCategory);
 
+    const eligibleMentors = validMentors.filter(m => {
       const programAllowed =
         !m.programs.length || m.programs.includes(student.program);
 
       const hasCapacity =
-        mentorCount.total < m.capacity;
+        counts[m.id].total < m.capacity;
 
       return programAllowed && hasCapacity;
     });
 
-    if (!eligible.length) {
+    if (eligibleMentors.length === 0) {
       unallocated.push({
         ...student,
         reason: 'No eligible mentor found for program/capacity'
       });
+
       return;
     }
 
-    let best = null;
+    let bestMentor = null;
     let bestScore = Infinity;
 
-    eligible.forEach(m => {
+    eligibleMentors.forEach(m => {
       const c = counts[m.id];
 
-      const salesKey = normalizeLower(student.salesType);
-      const payKey = normalizeLower(student.paymentCategory);
-
       const score =
-        (c.total * 1000) +
-        ((c[salesKey] || 0) * 500) +
-        ((c[payKey] || 0) * 500);
+        (c.total * 10000) +
+        (c[paymentKey] * 1000) +
+        (c[salesKey] * 500);
 
       if (score < bestScore) {
         bestScore = score;
-        best = m;
+        bestMentor = m;
       }
     });
 
-    if (!best) {
+    if (!bestMentor) {
       unallocated.push({
         ...student,
-        reason: 'Unable to calculate best mentor'
+        reason: 'Unable to find suitable mentor'
       });
+
       return;
     }
 
-    incrementCounts(counts[best.id], student);
+    incrementCounts(counts[bestMentor.id], student);
 
     assigned.push({
       ...student,
-      mentorName: best.name,
+      mentorName: bestMentor.name,
       locked: false
     });
   });
@@ -605,21 +652,6 @@ function runAllocation() {
   toast(`Allocated ${assigned.length} learners`, 'success');
 }
 
-function incrementCounts(countObj, student) {
-  const salesKey = normalizeLower(student.salesType);
-  const payKey = normalizeLower(student.paymentCategory);
-
-  if (countObj[salesKey] !== undefined) {
-    countObj[salesKey]++;
-  }
-
-  if (countObj[payKey] !== undefined) {
-    countObj[payKey]++;
-  }
-
-  countObj.total++;
-}
-
 /* =====================================================
    RESULTS
 ===================================================== */
@@ -634,10 +666,7 @@ function renderResults() {
   const unallocatedSection = document.getElementById('unallocated-section');
   const unallocatedList = document.getElementById('unallocated-list');
 
-  if (!summary || !blocks) {
-    console.error('Result containers not found');
-    return;
-  }
+  if (!summary || !blocks) return;
 
   summary.innerHTML = `
     <div class="summary-card">
@@ -652,7 +681,7 @@ function renderResults() {
 
     <div class="summary-card">
       <div class="sc-num">${results.mentors.length}</div>
-      <div class="sc-lbl">Active Mentors</div>
+      <div class="sc-lbl">Mentors</div>
     </div>
   `;
 
@@ -674,13 +703,16 @@ function renderResults() {
 
       <div class="mrc-body">
         <p>
-          Channel: ${c.channel} |
+          Channel: ${c.channel}
+          |
           Inside: ${c.inside}
         </p>
 
         <p>
-          Annual: ${c.annual} |
-          Full: ${c.full} |
+          Annual: ${c.annual}
+          |
+          Full Payment: ${c.fullPayment}
+          |
           Semester: ${c.semester}
         </p>
 
@@ -695,6 +727,10 @@ function renderResults() {
               ? mentorStudents.map(s => `
                 <div class="student-chip">
                   ${escapeHtml(s.rollNumber)}
+                  •
+                  ${escapeHtml(s.salesType)}
+                  •
+                  ${escapeHtml(s.paymentCategory)}
                   •
                   ${escapeHtml(s.program)}
                   ${s.locked ? '(Locked)' : ''}
@@ -716,6 +752,10 @@ function renderResults() {
       unallocatedList.innerHTML = results.unallocated.map(s => `
         <div class="student-chip">
           ${escapeHtml(s.rollNumber)}
+          •
+          ${escapeHtml(s.salesType)}
+          •
+          ${escapeHtml(s.paymentCategory)}
           •
           ${escapeHtml(s.program)}
           •
@@ -846,6 +886,7 @@ function exportCSV() {
 
   a.href = url;
   a.download = 'mentor-allocation.csv';
+
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
