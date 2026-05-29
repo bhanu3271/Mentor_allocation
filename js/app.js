@@ -2,6 +2,8 @@
    FINAL COMPLETE MENTOR ALLOCATOR
    WITH:
    ✔ Roll Number Support
+   ✔ Existing Mentor Support
+   ✔ Locked Mentor Allocation
    ✔ Multi Program Support
    ✔ Better Program UI
    ✔ Balanced Allocation Engine
@@ -174,16 +176,6 @@ function appendMentorCard(mentor) {
   nameInput.value = mentor.name;
   capInput.value = mentor.capacity;
 
-  /* =========================================
-     PROGRAM CHECKBOXES
-  ========================================= */
-
-  const oldProgramRow = card.querySelector('.mentor-capacity-row:nth-child(3)');
-
-  if (oldProgramRow) {
-    oldProgramRow.remove();
-  }
-
   const programWrap = document.createElement('div');
 
   programWrap.className = 'mentor-programs-wrap';
@@ -227,10 +219,6 @@ function appendMentorCard(mentor) {
       );
     });
   });
-
-  /* =========================================
-     EVENTS
-  ========================================= */
 
   nameInput.addEventListener('input', () => {
     mentor.name = nameInput.value.trim();
@@ -288,7 +276,10 @@ function addStudentRow(data = {}) {
     rollNumber: data.rollNumber || '',
     salesType: data.salesType || 'Channel',
     paymentCategory: data.paymentCategory || 'Annual',
-    program: data.program || PROGRAMS[0]
+    program: data.program || PROGRAMS[0],
+
+    /* EXISTING MENTOR */
+    existingMentor: data.existingMentor || ''
   };
 
   STATE.students.push(student);
@@ -335,6 +326,13 @@ function addStudentRow(data = {}) {
     </td>
 
     <td>
+      <input type="text"
+             class="s-existing-mentor"
+             placeholder="Existing Mentor"
+             value="${student.existingMentor}" />
+    </td>
+
+    <td>
       <button class="btn-icon remove-row-btn">
         <i class="fas fa-trash"></i>
       </button>
@@ -361,6 +359,10 @@ function addStudentRow(data = {}) {
     student.program = e.target.value;
   });
 
+  tr.querySelector('.s-existing-mentor').addEventListener('input', e => {
+    student.existingMentor = e.target.value.trim();
+  });
+
   tr.querySelector('.remove-row-btn').addEventListener('click', () => {
 
     STATE.students = STATE.students.filter(s => s.id !== id);
@@ -369,19 +371,6 @@ function addStudentRow(data = {}) {
   });
 
   tbody.appendChild(tr);
-}
-
-function clearStudents() {
-
-  if (!confirm('Clear all students?')) return;
-
-  STATE.students = [];
-
-  studentCounter = 0;
-
-  tbody.innerHTML = '';
-
-  toast('Students cleared', 'info');
 }
 
 /* =====================================================
@@ -438,7 +427,8 @@ function handleCSVImport(event) {
         rollNumber,
         salesType,
         paymentCategory,
-        program
+        program,
+        existingMentor
       ] = cols;
 
       if (!rollNumber) return;
@@ -447,7 +437,8 @@ function handleCSVImport(event) {
         rollNumber,
         salesType: normalizeSalesType(salesType),
         paymentCategory: normalizePayment(paymentCategory),
-        program: program || PROGRAMS[0]
+        program: program || PROGRAMS[0],
+        existingMentor: existingMentor || ''
       });
 
       imported++;
@@ -492,7 +483,7 @@ function normalizePayment(value) {
 }
 
 /* =====================================================
-   BALANCED ALLOCATION ENGINE
+   ALLOCATION ENGINE
 ===================================================== */
 
 const runAllocationBtn = document.getElementById('run-allocation-btn');
@@ -524,7 +515,7 @@ function runAllocation() {
 
   validMentors.forEach(m => {
 
-    counts[m.id] = {
+    counts[m.name] = {
       channel: 0,
       inside: 0,
       annual: 0,
@@ -537,7 +528,53 @@ function runAllocation() {
   const assigned = [];
   const unallocated = [];
 
-  const sortedStudents = [...students].sort((a, b) => {
+  /* =========================================
+     STEP 1
+     LOCK EXISTING MENTORS
+  ========================================= */
+
+  const lockedStudents = students.filter(
+    s => s.existingMentor
+  );
+
+  lockedStudents.forEach(student => {
+
+    const mentor = validMentors.find(
+      m => m.name.toLowerCase() === student.existingMentor.toLowerCase()
+    );
+
+    if (!mentor) {
+      unallocated.push(student);
+      return;
+    }
+
+    const stKey = student.salesType.toLowerCase();
+    const pcKey = student.paymentCategory.toLowerCase();
+
+    counts[mentor.name][stKey]++;
+    counts[mentor.name][pcKey]++;
+    counts[mentor.name].total++;
+
+    assigned.push({
+      rollNumber: student.rollNumber,
+      mentorName: mentor.name,
+      salesType: student.salesType,
+      paymentCategory: student.paymentCategory,
+      program: student.program,
+      locked: true
+    });
+  });
+
+  /* =========================================
+     STEP 2
+     ALLOCATE NEW LEARNERS
+  ========================================= */
+
+  const newStudents = students.filter(
+    s => !s.existingMentor
+  );
+
+  const sortedStudents = [...newStudents].sort((a, b) => {
 
     const aScore =
       (a.paymentCategory === 'Full' ? 3 : 0) +
@@ -566,7 +603,7 @@ function runAllocation() {
         return false;
       }
 
-      const c = counts[m.id];
+      const c = counts[m.name];
 
       if (c.total >= m.capacity) {
         return false;
@@ -583,17 +620,15 @@ function runAllocation() {
     }
 
     let bestMentor = null;
-
     let bestScore = Infinity;
 
     eligibleMentors.forEach(m => {
 
-      const c = counts[m.id];
+      const c = counts[m.name];
 
       const cap = m.capacity;
 
       const stLimit = getQuota(cap, LIMITS[stKey]);
-
       const pcLimit = getQuota(cap, LIMITS[pcKey]);
 
       let penalty = 0;
@@ -607,9 +642,7 @@ function runAllocation() {
       }
 
       const totalRatio = c.total / cap;
-
       const salesRatio = c[stKey] / cap;
-
       const paymentRatio = c[pcKey] / cap;
 
       const score =
@@ -621,25 +654,23 @@ function runAllocation() {
       if (score < bestScore) {
 
         bestScore = score;
-
         bestMentor = m;
       }
     });
 
     if (bestMentor) {
 
-      counts[bestMentor.id][stKey]++;
-
-      counts[bestMentor.id][pcKey]++;
-
-      counts[bestMentor.id].total++;
+      counts[bestMentor.name][stKey]++;
+      counts[bestMentor.name][pcKey]++;
+      counts[bestMentor.name].total++;
 
       assigned.push({
         rollNumber: student.rollNumber,
         mentorName: bestMentor.name,
         salesType: student.salesType,
         paymentCategory: student.paymentCategory,
-        program: student.program
+        program: student.program,
+        locked: false
       });
 
     } else {
@@ -660,7 +691,7 @@ function runAllocation() {
   switchToResultsTab();
 
   toast(
-    `Allocated ${assigned.length} students`,
+    `Allocated ${assigned.length} learners`,
     unallocated.length > 0 ? 'warn' : 'success'
   );
 }
@@ -691,7 +722,7 @@ function renderResults() {
 
   mentors.forEach(m => {
 
-    const stats = counts[m.id];
+    const stats = counts[m.name];
 
     const mentorStudents = assigned.filter(
       a => a.mentorName === m.name
@@ -726,6 +757,7 @@ function renderResults() {
               ${s.rollNumber}
               •
               ${s.program}
+              ${s.locked ? '🔒' : ''}
             </div>
           `).join('')}
 
@@ -762,6 +794,10 @@ function makeBar(label, used, limitRatio, cap) {
     </div>
   `;
 }
+
+/* =====================================================
+   SWITCH TAB
+===================================================== */
 
 function switchToResultsTab() {
 
@@ -837,7 +873,14 @@ function exportCSV() {
   }
 
   const rows = [
-    ['Roll Number', 'Mentor', 'Sales Type', 'Payment Category', 'Program']
+    [
+      'Roll Number',
+      'Mentor',
+      'Sales Type',
+      'Payment Category',
+      'Program',
+      'Locked'
+    ]
   ];
 
   STATE.lastResults.assigned.forEach(a => {
@@ -847,7 +890,8 @@ function exportCSV() {
       a.mentorName,
       a.salesType,
       a.paymentCategory,
-      a.program
+      a.program,
+      a.locked ? 'Yes' : 'No'
     ]);
   });
 
