@@ -2,7 +2,7 @@
    FINAL COMPLETE MENTOR ALLOCATOR
    WITH:
    ✔ Roll Number Support
-   ✔ Existing Mentor Support
+   ✔ Existing Mentor Lock Support
    ✔ Multi Program Support
    ✔ Better Program UI
    ✔ Balanced Allocation Engine
@@ -55,7 +55,8 @@ let studentCounter = 0;
 
 function toast(msg, type = 'info', duration = 3000) {
 
-  const container = document.getElementById('toast-container');
+  const container =
+    document.getElementById('toast-container');
 
   if (!container) return;
 
@@ -103,42 +104,54 @@ function barClass(used, limit, cap) {
 
 function initTabs() {
 
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn')
+    .forEach(btn => {
 
-    btn.addEventListener('click', () => {
+      btn.addEventListener('click', () => {
 
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('active');
+        document.querySelectorAll('.tab-btn')
+          .forEach(b => {
+            b.classList.remove('active');
+          });
+
+        document.querySelectorAll('.tab-content')
+          .forEach(tab => {
+            tab.classList.remove('active');
+          });
+
+        btn.classList.add('active');
+
+        const tabId =
+          'tab-' + btn.dataset.tab;
+
+        const tab =
+          document.getElementById(tabId);
+
+        if (tab) {
+          tab.classList.add('active');
+        }
       });
-
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-      });
-
-      btn.classList.add('active');
-
-      const tabId = 'tab-' + btn.dataset.tab;
-
-      const tab = document.getElementById(tabId);
-
-      if (tab) {
-        tab.classList.add('active');
-      }
     });
-  });
 }
 
 /* =====================================================
    MENTORS
 ===================================================== */
 
-const addMentorBtn = document.getElementById('add-mentor-btn');
-const mentorsList = document.getElementById('mentors-list');
+const addMentorBtn =
+  document.getElementById('add-mentor-btn');
+
+const mentorsList =
+  document.getElementById('mentors-list');
 
 function initMentors() {
 
   if (addMentorBtn) {
-    addMentorBtn.addEventListener('click', addMentor);
+
+    addMentorBtn.addEventListener(
+      'click',
+      addMentor
+    );
   }
 }
 
@@ -160,57 +173,85 @@ function addMentor() {
 
 function appendMentorCard(mentor) {
 
-  const template = document.getElementById('mentor-card-tpl');
+  const template =
+    document.getElementById('mentor-card-tpl');
 
-  const clone = template.content.cloneNode(true);
+  const clone =
+    template.content.cloneNode(true);
 
-  const card = clone.querySelector('.mentor-card');
+  const card =
+    clone.querySelector('.mentor-card');
 
-  const nameInput = card.querySelector('.mentor-name-input');
-  const capInput = card.querySelector('.mentor-capacity');
-  const removeBtn = card.querySelector('.remove-mentor-btn');
+  const nameInput =
+    card.querySelector('.mentor-name-input');
+
+  const capInput =
+    card.querySelector('.mentor-capacity');
+
+  const removeBtn =
+    card.querySelector('.remove-mentor-btn');
 
   nameInput.value = mentor.name;
+
   capInput.value = mentor.capacity;
 
   const checkboxes =
-    card.querySelectorAll('.mentor-program-checkbox');
+    card.querySelectorAll(
+      '.mentor-program-checkbox'
+    );
 
   checkboxes.forEach(checkbox => {
 
-    checkbox.addEventListener('change', () => {
+    checkbox.addEventListener(
+      'change',
+      () => {
 
-      mentor.programs = Array.from(checkboxes)
-        .filter(cb => cb.checked)
-        .map(cb => cb.value);
+        mentor.programs =
+          Array.from(checkboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
 
-      checkbox.parentElement.classList.toggle(
-        'checked',
-        checkbox.checked
-      );
-    });
-  });
-
-  nameInput.addEventListener('input', () => {
-    mentor.name = nameInput.value.trim();
-  });
-
-  capInput.addEventListener('input', () => {
-    mentor.capacity = Math.max(
-      1,
-      parseInt(capInput.value) || 1
+        checkbox.parentElement.classList.toggle(
+          'checked',
+          checkbox.checked
+        );
+      }
     );
   });
 
-  removeBtn.addEventListener('click', () => {
+  nameInput.addEventListener(
+    'input',
+    () => {
+      mentor.name =
+        nameInput.value.trim();
+    }
+  );
 
-    STATE.mentors =
-      STATE.mentors.filter(m => m.id !== mentor.id);
+  capInput.addEventListener(
+    'input',
+    () => {
 
-    card.remove();
+      mentor.capacity = Math.max(
+        1,
+        parseInt(capInput.value) || 1
+      );
+    }
+  );
 
-    toast('Mentor removed', 'info');
-  });
+  removeBtn.addEventListener(
+    'click',
+    () => {
+
+      STATE.mentors =
+        STATE.mentors.filter(
+          m => m.id !== mentor.id
+        );
+
+      card.remove();
+
+      toast('Mentor removed', 'info');
+    }
+  );
 
   mentorsList.appendChild(card);
 }
@@ -219,26 +260,37 @@ function appendMentorCard(mentor) {
    STUDENTS
 ===================================================== */
 
-const tbody = document.getElementById('students-tbody');
+const tbody =
+  document.getElementById('students-tbody');
 
 const addStudentRowBtn =
-  document.getElementById('add-student-row-btn');
+  document.getElementById(
+    'add-student-row-btn'
+  );
 
 const clearStudentsBtn =
-  document.getElementById('clear-students-btn');
+  document.getElementById(
+    'clear-students-btn'
+  );
 
 function initStudents() {
 
   if (addStudentRowBtn) {
 
-    addStudentRowBtn.addEventListener('click', () => {
-      addStudentRow();
-    });
+    addStudentRowBtn.addEventListener(
+      'click',
+      () => {
+        addStudentRow();
+      }
+    );
   }
 
   if (clearStudentsBtn) {
 
-    clearStudentsBtn.addEventListener('click', clearStudents);
+    clearStudentsBtn.addEventListener(
+      'click',
+      clearStudents
+    );
   }
 
   for (let i = 0; i < 3; i++) {
@@ -252,16 +304,22 @@ function addStudentRow(data = {}) {
 
   const student = {
     id,
-    rollNumber: data.rollNumber || '',
-    salesType: data.salesType || 'Channel',
-    paymentCategory: data.paymentCategory || 'Annual',
-    program: data.program || PROGRAMS[0],
-    existingMentor: data.existingMentor || ''
+    rollNumber:
+      data.rollNumber || '',
+    salesType:
+      data.salesType || 'Channel',
+    paymentCategory:
+      data.paymentCategory || 'Annual',
+    program:
+      data.program || PROGRAMS[0],
+    existingMentor:
+      data.existingMentor || ''
   };
 
   STATE.students.push(student);
 
-  const tr = document.createElement('tr');
+  const tr =
+    document.createElement('tr');
 
   tr.dataset.studentId = id;
 
@@ -327,22 +385,26 @@ function addStudentRow(data = {}) {
 
   tr.querySelector('.s-roll')
     .addEventListener('input', e => {
-      student.rollNumber = e.target.value.trim();
+      student.rollNumber =
+        e.target.value.trim();
     });
 
   tr.querySelector('.s-sales')
     .addEventListener('change', e => {
-      student.salesType = e.target.value;
+      student.salesType =
+        e.target.value;
     });
 
   tr.querySelector('.s-payment')
     .addEventListener('change', e => {
-      student.paymentCategory = e.target.value;
+      student.paymentCategory =
+        e.target.value;
     });
 
   tr.querySelector('.s-program')
     .addEventListener('change', e => {
-      student.program = e.target.value;
+      student.program =
+        e.target.value;
     });
 
   tr.querySelector('.s-existing-mentor')
@@ -355,13 +417,19 @@ function addStudentRow(data = {}) {
     .addEventListener('click', () => {
 
       STATE.students =
-        STATE.students.filter(s => s.id !== id);
+        STATE.students.filter(
+          s => s.id !== id
+        );
 
       tr.remove();
     });
 
   tbody.appendChild(tr);
 }
+
+/* =====================================================
+   CLEAR STUDENTS
+===================================================== */
 
 function clearStudents() {
 
@@ -390,9 +458,12 @@ function initCSVImport() {
 
   if (!importCsvBtn || !csvFileInput) return;
 
-  importCsvBtn.addEventListener('click', () => {
-    csvFileInput.click();
-  });
+  importCsvBtn.addEventListener(
+    'click',
+    () => {
+      csvFileInput.click();
+    }
+  );
 
   csvFileInput.addEventListener(
     'change',
@@ -402,7 +473,8 @@ function initCSVImport() {
 
 function handleCSVImport(event) {
 
-  const file = event.target.files[0];
+  const file =
+    event.target.files[0];
 
   if (!file) return;
 
@@ -416,11 +488,6 @@ function handleCSVImport(event) {
       .split('\n')
       .map(line => line.trim())
       .filter(line => line);
-
-    if (lines.length === 0) {
-      toast('CSV file is empty', 'warn');
-      return;
-    }
 
     let imported = 0;
 
@@ -451,18 +518,23 @@ function handleCSVImport(event) {
 
       addStudentRow({
         rollNumber,
-        salesType: normalizeSalesType(salesType),
-        paymentCategory: normalizePayment(
-          paymentCategory
-        ),
-        program: program || PROGRAMS[0],
-        existingMentor: existingMentor || ''
+        salesType:
+          normalizeSalesType(salesType),
+        paymentCategory:
+          normalizePayment(paymentCategory),
+        program:
+          program || PROGRAMS[0],
+        existingMentor:
+          existingMentor || ''
       });
 
       imported++;
     });
 
-    toast(`${imported} students imported`, 'success');
+    toast(
+      `${imported} students imported`,
+      'success'
+    );
 
     csvFileInput.value = '';
   };
@@ -501,15 +573,18 @@ function normalizePayment(value) {
 }
 
 /* =====================================================
-   BALANCED ALLOCATION ENGINE
+   ALLOCATION ENGINE
 ===================================================== */
 
 const runAllocationBtn =
-  document.getElementById('run-allocation-btn');
+  document.getElementById(
+    'run-allocation-btn'
+  );
 
 function initAllocation() {
 
   if (runAllocationBtn) {
+
     runAllocationBtn.addEventListener(
       'click',
       runAllocation
@@ -523,15 +598,27 @@ function runAllocation() {
     STATE.mentors.filter(m => m.name);
 
   if (validMentors.length === 0) {
-    toast('Please add mentors', 'error');
+
+    toast(
+      'Please add mentors',
+      'error'
+    );
+
     return;
   }
 
   const students =
-    STATE.students.filter(s => s.rollNumber);
+    STATE.students.filter(
+      s => s.rollNumber
+    );
 
   if (students.length === 0) {
-    toast('Please add students', 'error');
+
+    toast(
+      'Please add students',
+      'error'
+    );
+
     return;
   }
 
@@ -553,7 +640,7 @@ function runAllocation() {
   const unallocated = [];
 
   /* =========================================
-     FIRST LOAD EXISTING MENTORS
+     EXISTING LOCKED MENTORS
   ========================================= */
 
   students.forEach(student => {
@@ -561,10 +648,23 @@ function runAllocation() {
     if (!student.existingMentor) return;
 
     const mentor = validMentors.find(
-      m => m.name === student.existingMentor
+      m =>
+        m.name.trim().toLowerCase() ===
+        student.existingMentor
+          .trim()
+          .toLowerCase()
     );
 
-    if (!mentor) return;
+    if (!mentor) {
+
+      unallocated.push({
+        ...student,
+        reason:
+          'Existing mentor not found'
+      });
+
+      return;
+    }
 
     const stKey =
       student.salesType.toLowerCase();
@@ -573,16 +673,22 @@ function runAllocation() {
       student.paymentCategory.toLowerCase();
 
     counts[mentor.id][stKey]++;
+
     counts[mentor.id][pcKey]++;
+
     counts[mentor.id].total++;
 
     assigned.push({
-      rollNumber: student.rollNumber,
-      mentorName: mentor.name,
-      salesType: student.salesType,
+      rollNumber:
+        student.rollNumber,
+      mentorName:
+        mentor.name,
+      salesType:
+        student.salesType,
       paymentCategory:
         student.paymentCategory,
-      program: student.program,
+      program:
+        student.program,
       locked: true
     });
   });
@@ -591,9 +697,10 @@ function runAllocation() {
      ONLY NEW STUDENTS
   ========================================= */
 
-  const newStudents = students.filter(
-    s => !s.existingMentor
-  );
+  const newStudents =
+    students.filter(
+      s => !s.existingMentor
+    );
 
   newStudents.forEach(student => {
 
@@ -608,7 +715,9 @@ function runAllocation() {
 
         if (
           m.programs.length > 0 &&
-          !m.programs.includes(student.program)
+          !m.programs.includes(
+            student.program
+          )
         ) {
           return false;
         }
@@ -624,7 +733,11 @@ function runAllocation() {
 
     if (eligibleMentors.length === 0) {
 
-      unallocated.push(student);
+      unallocated.push({
+        ...student,
+        reason:
+          'No mentor capacity'
+      });
 
       return;
     }
@@ -639,7 +752,8 @@ function runAllocation() {
 
       const cap = m.capacity;
 
-      const totalRatio = c.total / cap;
+      const totalRatio =
+        c.total / cap;
 
       const salesRatio =
         c[stKey] / cap;
@@ -663,16 +777,22 @@ function runAllocation() {
     if (bestMentor) {
 
       counts[bestMentor.id][stKey]++;
+
       counts[bestMentor.id][pcKey]++;
+
       counts[bestMentor.id].total++;
 
       assigned.push({
-        rollNumber: student.rollNumber,
-        mentorName: bestMentor.name,
-        salesType: student.salesType,
+        rollNumber:
+          student.rollNumber,
+        mentorName:
+          bestMentor.name,
+        salesType:
+          student.salesType,
         paymentCategory:
           student.paymentCategory,
-        program: student.program,
+        program:
+          student.program,
         locked: false
       });
 
@@ -694,7 +814,7 @@ function runAllocation() {
   switchToResultsTab();
 
   toast(
-    `Allocated ${assigned.length} students`,
+    `Allocated ${assigned.length} learners`,
     unallocated.length > 0
       ? 'warn'
       : 'success'
@@ -708,7 +828,9 @@ function runAllocation() {
 function renderResults() {
 
   const summaryCards =
-    document.getElementById('summary-cards');
+    document.getElementById(
+      'summary-cards'
+    );
 
   const mentorBlocks =
     document.getElementById(
@@ -724,13 +846,21 @@ function renderResults() {
 
   summaryCards.innerHTML = `
     <div class="summary-card">
-      <div class="sc-num">${assigned.length}</div>
-      <div class="sc-lbl">Allocated</div>
+      <div class="sc-num">
+        ${assigned.length}
+      </div>
+      <div class="sc-lbl">
+        Allocated
+      </div>
     </div>
 
     <div class="summary-card">
-      <div class="sc-num">${unallocated.length}</div>
-      <div class="sc-lbl">Unallocated</div>
+      <div class="sc-num">
+        ${unallocated.length}
+      </div>
+      <div class="sc-lbl">
+        Unallocated
+      </div>
     </div>
   `;
 
@@ -742,61 +872,35 @@ function renderResults() {
 
     const mentorStudents =
       assigned.filter(
-        a => a.mentorName === m.name
+        a =>
+          a.mentorName === m.name
       );
 
-    const div = document.createElement('div');
+    const div =
+      document.createElement('div');
 
-    div.className = 'mentor-result-card';
+    div.className =
+      'mentor-result-card';
 
     div.innerHTML = `
       <div class="mrc-header">
+
         <h3>${m.name}</h3>
+
         <span>
-          ${stats.total} / ${m.capacity}
+          ${stats.total}
+          /
+          ${m.capacity}
         </span>
+
       </div>
 
       <div class="mrc-body">
 
-        ${makeBar(
-          'Channel',
-          stats.channel,
-          LIMITS.channel,
-          m.capacity
-        )}
-
-        ${makeBar(
-          'Inside',
-          stats.inside,
-          LIMITS.inside,
-          m.capacity
-        )}
-
-        ${makeBar(
-          'Annual',
-          stats.annual,
-          LIMITS.annual,
-          m.capacity
-        )}
-
-        ${makeBar(
-          'Full',
-          stats.full,
-          LIMITS.full,
-          m.capacity
-        )}
-
-        ${makeBar(
-          'Semester',
-          stats.semester,
-          LIMITS.semester,
-          m.capacity
-        )}
-
         <div class="student-mini-list">
 
           ${mentorStudents.map(s => `
+
             <div class="student-chip">
 
               ${s.rollNumber}
@@ -804,11 +908,12 @@ function renderResults() {
               ${s.program}
 
               ${s.locked
-                ? '<span style="color:#16a34a">(Locked)</span>'
+                ? '<span style="color:#16a34a"> (Locked)</span>'
                 : ''
               }
 
             </div>
+
           `).join('')}
 
         </div>
@@ -820,35 +925,9 @@ function renderResults() {
   });
 }
 
-function makeBar(label, used, limitRatio, cap) {
-
-  const limitCount =
-    getQuota(cap, limitRatio);
-
-  const width =
-    Math.min((used / cap) * 100, 100);
-
-  const cls =
-    barClass(used, limitRatio, cap);
-
-  return `
-    <div class="bar-group">
-
-      <div class="bar-label">
-        <span>${label}</span>
-        <span>${used} / ${limitCount}</span>
-      </div>
-
-      <div class="bar-track">
-
-        <div class="bar-fill ${cls}"
-             style="width:${width}%"></div>
-
-      </div>
-
-    </div>
-  `;
-}
+/* =====================================================
+   SWITCH TAB
+===================================================== */
 
 function switchToResultsTab() {
 
@@ -863,7 +942,9 @@ function switchToResultsTab() {
     });
 
   document
-    .querySelector('[data-tab="results"]')
+    .querySelector(
+      '[data-tab="results"]'
+    )
     .classList.add('active');
 
   document
@@ -876,11 +957,14 @@ function switchToResultsTab() {
 ===================================================== */
 
 const resetBtn =
-  document.getElementById('reset-day-btn');
+  document.getElementById(
+    'reset-day-btn'
+  );
 
 function initReset() {
 
   if (resetBtn) {
+
     resetBtn.addEventListener(
       'click',
       resetDay
@@ -893,6 +977,7 @@ function resetDay() {
   if (!confirm('Reset all data?')) return;
 
   STATE.students = [];
+
   STATE.lastResults = null;
 
   studentCounter = 0;
@@ -907,11 +992,10 @@ function resetDay() {
     'mentor-result-blocks'
   ).innerHTML = '';
 
-  for (let i = 0; i < 3; i++) {
-    addStudentRow();
-  }
-
-  toast('Reset completed', 'success');
+  toast(
+    'Reset completed',
+    'success'
+  );
 }
 
 /* =====================================================
@@ -926,6 +1010,7 @@ const exportBtn =
 function initExport() {
 
   if (exportBtn) {
+
     exportBtn.addEventListener(
       'click',
       exportCSV
@@ -936,7 +1021,12 @@ function initExport() {
 function exportCSV() {
 
   if (!STATE.lastResults) {
-    toast('No results available', 'warn');
+
+    toast(
+      'No results available',
+      'warn'
+    );
+
     return;
   }
 
@@ -945,7 +1035,8 @@ function exportCSV() {
     'Mentor',
     'Sales Type',
     'Payment Category',
-    'Program'
+    'Program',
+    'Locked'
   ]];
 
   STATE.lastResults.assigned
@@ -956,17 +1047,23 @@ function exportCSV() {
         a.mentorName,
         a.salesType,
         a.paymentCategory,
-        a.program
+        a.program,
+        a.locked ? 'Yes' : 'No'
       ]);
     });
 
-  const csv = rows.map(r =>
-    r.map(c => `"${c}"`).join(',')
-  ).join('\n');
+  const csv = rows
+    .map(r =>
+      r.map(c => `"${c}"`).join(',')
+    )
+    .join('\n');
 
-  const blob = new Blob([csv], {
-    type: 'text/csv'
-  });
+  const blob = new Blob(
+    [csv],
+    {
+      type: 'text/csv'
+    }
+  );
 
   const url =
     URL.createObjectURL(blob);
@@ -983,11 +1080,14 @@ function exportCSV() {
 
   URL.revokeObjectURL(url);
 
-  toast('CSV Exported', 'success');
+  toast(
+    'CSV Exported',
+    'success'
+  );
 }
 
 /* =====================================================
-   INITIALIZE APP
+   INITIALIZE
 ===================================================== */
 
 document.addEventListener(
