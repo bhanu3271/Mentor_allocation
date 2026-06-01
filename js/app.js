@@ -1,37 +1,13 @@
 'use strict';
 
-/* =====================================================
-   PROGRAMS
-===================================================== */
-
 const PROGRAMS = [
-  'BBA',
-  'BCA',
-  'B.Com',
-  'MA.JMC',
-  'MBA',
-  'MCA',
-  'M.Com',
-  'MA in Economics',
-  'MSc in Mathematics'
+  'BBA', 'BCA', 'B.Com', 'MA.JMC', 'MBA',
+  'MCA', 'M.Com', 'MA in Economics', 'MSc in Mathematics'
 ];
 
-const PAYMENT_CATEGORIES = [
-  'Annual',
-  'Full Payment',
-  'Semester'
-];
-
-const SALES_TYPES = [
-  'Channel',
-  'Inside'
-];
-
+const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
+const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 850;
-
-/* =====================================================
-   DEFAULT MENTOR MAPPING
-===================================================== */
 
 const DEFAULT_MENTORS = [
   ['Mentor 1', 'B.Com', 'MBA'],
@@ -69,10 +45,6 @@ const DEFAULT_MENTORS = [
   ['Mentor 30', 'MSc in Mathematics', 'MBA']
 ];
 
-/* =====================================================
-   STATE
-===================================================== */
-
 const STATE = {
   mentors: [],
   students: [],
@@ -81,10 +53,6 @@ const STATE = {
 
 let mentorCounter = 0;
 let studentCounter = 0;
-
-/* =====================================================
-   HELPERS
-===================================================== */
 
 function toast(msg, type = 'info') {
   const container = document.getElementById('toast-container');
@@ -97,7 +65,6 @@ function toast(msg, type = 'info') {
   const div = document.createElement('div');
   div.className = `toast ${type}`;
   div.innerHTML = `<span>${msg}</span>`;
-
   container.appendChild(div);
 
   setTimeout(() => div.remove(), 3000);
@@ -139,12 +106,7 @@ function normalizeProgram(value) {
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (
-    val === 'full' ||
-    val === 'full payment' ||
-    val === 'fullpayment' ||
-    val === 'fu'
-  ) {
+  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
     return 'Full Payment';
   }
 
@@ -173,33 +135,18 @@ function getPaymentKey(paymentCategory) {
 }
 
 function getSalesKey(salesType) {
-  const value = normalizeSalesType(salesType);
-
-  if (value === 'Inside') return 'inside';
-
-  return 'channel';
+  return normalizeSalesType(salesType) === 'Inside' ? 'inside' : 'channel';
 }
-
-/* =====================================================
-   TABS
-===================================================== */
 
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      switchToTab(btn.dataset.tab);
-    });
+    btn.addEventListener('click', () => switchToTab(btn.dataset.tab));
   });
 }
 
 function switchToTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-
-  document.querySelectorAll('.tab-content').forEach(tab => {
-    tab.classList.remove('active');
-  });
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
 
   const btn = document.querySelector(`[data-tab="${tabName}"]`);
   const tab = document.getElementById(`tab-${tabName}`);
@@ -208,16 +155,10 @@ function switchToTab(tabName) {
   if (tab) tab.classList.add('active');
 }
 
-/* =====================================================
-   MENTORS
-===================================================== */
-
 function initMentors() {
   const btn = document.getElementById('add-mentor-btn');
 
-  if (btn) {
-    btn.addEventListener('click', addMentor);
-  }
+  if (btn) btn.addEventListener('click', addMentor);
 
   loadDefaultMentors();
 }
@@ -322,21 +263,12 @@ function renderMentor(mentor) {
   list.appendChild(card);
 }
 
-/* =====================================================
-   STUDENTS
-===================================================== */
-
 function initStudents() {
   const addBtn = document.getElementById('add-student-row-btn');
   const clearBtn = document.getElementById('clear-students-btn');
 
-  if (addBtn) {
-    addBtn.addEventListener('click', () => addStudentRow());
-  }
-
-  if (clearBtn) {
-    clearBtn.addEventListener('click', clearStudents);
-  }
+  if (addBtn) addBtn.addEventListener('click', () => addStudentRow());
+  if (clearBtn) clearBtn.addEventListener('click', clearStudents);
 
   for (let i = 0; i < 3; i++) {
     addStudentRow();
@@ -345,7 +277,6 @@ function initStudents() {
 
 function addStudentRow(data = {}) {
   const tbody = document.getElementById('students-tbody');
-
   if (!tbody) return;
 
   const student = {
@@ -458,10 +389,6 @@ function clearStudents() {
   toast('Students cleared', 'success');
 }
 
-/* =====================================================
-   CSV IMPORT
-===================================================== */
-
 function initCSVImport() {
   const btn = document.getElementById('import-csv-btn');
   const input = document.getElementById('csv-file-input');
@@ -515,10 +442,7 @@ function handleCSVImport(e) {
     lines.forEach((line, index) => {
       const cols = parseCSVLine(line);
 
-      if (
-        index === 0 &&
-        cols.join(',').toLowerCase().includes('roll')
-      ) {
+      if (index === 0 && cols.join(',').toLowerCase().includes('roll')) {
         return;
       }
 
@@ -539,20 +463,13 @@ function handleCSVImport(e) {
     e.target.value = '';
   };
 
-  reader.onerror = () => {
-    toast('Unable to read CSV file', 'error');
-  };
+  reader.onerror = () => toast('Unable to read CSV file', 'error');
 
   reader.readAsText(file);
 }
 
-/* =====================================================
-   ALLOCATION ENGINE
-===================================================== */
-
 function initAllocation() {
   const btn = document.getElementById('run-allocation-btn');
-
   if (!btn) return;
 
   btn.addEventListener('click', runAllocation);
@@ -666,7 +583,6 @@ function runAllocation() {
         ...student,
         reason: `Existing mentor "${student.existingMentor}" not found`
       });
-
       processedStudentIds.add(student.id);
       return;
     }
@@ -676,7 +592,6 @@ function runAllocation() {
         ...student,
         reason: `Existing mentor "${mentor.name}" is not mapped to ${student.program}`
       });
-
       processedStudentIds.add(student.id);
       return;
     }
@@ -686,7 +601,6 @@ function runAllocation() {
         ...student,
         reason: `Existing mentor "${mentor.name}" capacity full`
       });
-
       processedStudentIds.add(student.id);
       return;
     }
@@ -730,7 +644,6 @@ function runAllocation() {
         ...student,
         reason: `No mentor mapped to ${program} or capacity full`
       });
-
       return;
     }
 
@@ -776,13 +689,8 @@ function runAllocation() {
   toast(`Allocated ${assigned.length} learners`, 'success');
 }
 
-/* =====================================================
-   RESULTS
-===================================================== */
-
 function renderResults() {
   const results = STATE.lastResults;
-
   if (!results) return;
 
   const summary = document.getElementById('summary-cards');
@@ -825,24 +733,9 @@ function renderResults() {
       </div>
 
       <div class="mrc-body">
-        <p>
-          Channel: ${c.channel}
-          |
-          Inside: ${c.inside}
-        </p>
-
-        <p>
-          Annual: ${c.annual}
-          |
-          Full Payment: ${c.fullPayment}
-          |
-          Semester: ${c.semester}
-        </p>
-
-        <p>
-          Programs:
-          ${m.programs.length ? escapeHtml(m.programs.join(', ')) : 'No Program'}
-        </p>
+        <p>Channel: ${c.channel} | Inside: ${c.inside}</p>
+        <p>Annual: ${c.annual} | Full Payment: ${c.fullPayment} | Semester: ${c.semester}</p>
+        <p>Programs: ${m.programs.length ? escapeHtml(m.programs.join(', ')) : 'No Program'}</p>
 
         <div class="student-mini-list">
           ${
@@ -850,12 +743,9 @@ function renderResults() {
               ? mentorStudents.map(s => `
                 <div class="student-chip">
                   ${escapeHtml(s.rollNumber)}
-                  •
-                  ${escapeHtml(s.salesType)}
-                  •
-                  ${escapeHtml(s.paymentCategory)}
-                  •
-                  ${escapeHtml(s.program)}
+                  • ${escapeHtml(s.salesType)}
+                  • ${escapeHtml(s.paymentCategory)}
+                  • ${escapeHtml(s.program)}
                   ${s.locked ? '(Locked)' : ''}
                 </div>
               `).join('')
@@ -875,14 +765,10 @@ function renderResults() {
       unallocatedList.innerHTML = results.unallocated.map(s => `
         <div class="student-chip">
           ${escapeHtml(s.rollNumber)}
-          •
-          ${escapeHtml(s.salesType)}
-          •
-          ${escapeHtml(s.paymentCategory)}
-          •
-          ${escapeHtml(s.program)}
-          •
-          ${escapeHtml(s.reason || 'Unallocated')}
+          • ${escapeHtml(s.salesType)}
+          • ${escapeHtml(s.paymentCategory)}
+          • ${escapeHtml(s.program)}
+          • ${escapeHtml(s.reason || 'Unallocated')}
         </div>
       `).join('');
     } else {
@@ -892,13 +778,8 @@ function renderResults() {
   }
 }
 
-/* =====================================================
-   RESET
-===================================================== */
-
 function initReset() {
   const btn = document.getElementById('reset-day-btn');
-
   if (!btn) return;
 
   btn.addEventListener('click', resetDay);
@@ -909,7 +790,6 @@ function resetDay() {
 
   STATE.students = [];
   STATE.lastResults = null;
-
   studentCounter = 0;
 
   const studentsTbody = document.getElementById('students-tbody');
@@ -929,20 +809,19 @@ function resetDay() {
   }
 
   switchToTab('allocate');
-
   toast('Student data reset completed', 'success');
 }
 
-/* =====================================================
-   EXPORT EXCEL
-===================================================== */
-
 function initExport() {
   const btn = document.getElementById('export-results-btn');
-
   if (!btn) return;
 
   btn.addEventListener('click', exportCSV);
+}
+
+function pct(part, total) {
+  if (!total) return '0%';
+  return ((part / total) * 100).toFixed(2) + '%';
 }
 
 function exportCSV() {
@@ -1002,31 +881,67 @@ function exportCSV() {
   const sheet2 = [[
     'Mentor',
     'Assigned Learners',
-    'Allocation %',
-    'Channel',
-    'Inside',
-    'Annual',
-    'Full Payment',
-    'Semester',
+    'Overall Allocation %',
+
+    'Channel Total',
+    'Channel Annual',
+    'Channel Annual %',
+    'Channel Full Payment',
+    'Channel Full Payment %',
+    'Channel Semester',
+    'Channel Semester %',
+
+    'Inside Total',
+    'Inside Annual',
+    'Inside Annual %',
+    'Inside Full Payment',
+    'Inside Full Payment %',
+    'Inside Semester',
+    'Inside Semester %',
+
+    'Overall Annual',
+    'Overall Full Payment',
+    'Overall Semester',
     'Capacity',
     'Programs'
   ]];
 
   mentors.forEach(m => {
     const c = counts[m.id];
-    const assignedCount = assigned.filter(a => a.mentorName === m.name).length;
+    const mentorRows = assigned.filter(a => a.mentorName === m.name);
 
-    const allocationPercentage =
-      totalAllocated > 0
-        ? ((assignedCount / totalAllocated) * 100).toFixed(2) + '%'
-        : '0%';
+    const channelRows = mentorRows.filter(a => a.salesType === 'Channel');
+    const insideRows = mentorRows.filter(a => a.salesType === 'Inside');
+
+    const channelAnnual = channelRows.filter(a => a.paymentCategory === 'Annual').length;
+    const channelFull = channelRows.filter(a => a.paymentCategory === 'Full Payment').length;
+    const channelSemester = channelRows.filter(a => a.paymentCategory === 'Semester').length;
+
+    const insideAnnual = insideRows.filter(a => a.paymentCategory === 'Annual').length;
+    const insideFull = insideRows.filter(a => a.paymentCategory === 'Full Payment').length;
+    const insideSemester = insideRows.filter(a => a.paymentCategory === 'Semester').length;
 
     sheet2.push([
       m.name,
-      assignedCount,
-      allocationPercentage,
-      c.channel,
-      c.inside,
+      mentorRows.length,
+      pct(mentorRows.length, totalAllocated),
+
+      channelRows.length,
+      channelAnnual,
+      pct(channelAnnual, channelRows.length),
+      channelFull,
+      pct(channelFull, channelRows.length),
+      channelSemester,
+      pct(channelSemester, channelRows.length),
+
+      insideRows.length,
+      insideAnnual,
+      pct(insideAnnual, insideRows.length),
+      insideFull,
+      pct(insideFull, insideRows.length),
+      insideSemester,
+      pct(insideSemester, insideRows.length),
+
       c.annual,
       c.fullPayment,
       c.semester,
@@ -1047,10 +962,6 @@ function exportCSV() {
 
   toast('Excel Exported', 'success');
 }
-
-/* =====================================================
-   INITIALIZE APP
-===================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
