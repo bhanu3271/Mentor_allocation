@@ -32,17 +32,17 @@
 
     <nav class="tab-nav">
 
-      <button class="tab-btn active" data-tab="setup">
+      <button class="tab-btn active" data-tab="setup" type="button">
         <i class="fas fa-cog"></i>
         Setup
       </button>
 
-      <button class="tab-btn" data-tab="allocate">
+      <button class="tab-btn" data-tab="allocate" type="button">
         <i class="fas fa-magic"></i>
         Allocate
       </button>
 
-      <button class="tab-btn" data-tab="results">
+      <button class="tab-btn" data-tab="results" type="button">
         <i class="fas fa-chart-bar"></i>
         Results
       </button>
@@ -55,9 +55,7 @@
 
 <main id="app-main">
 
-  <!-- =====================================================
-       SETUP TAB
-  ===================================================== -->
+  <!-- SETUP TAB -->
   <section id="tab-setup" class="tab-content active">
 
     <div class="panel">
@@ -81,7 +79,7 @@
       </div>
 
       <p class="panel-desc">
-        Add mentors, capacity and assign programs.
+        Default mentor mapping is auto-loaded. You can edit capacity or assigned programs if required.
       </p>
 
       <div id="mentors-list" class="mentors-grid"></div>
@@ -90,9 +88,7 @@
 
   </section>
 
-  <!-- =====================================================
-       ALLOCATION TAB
-  ===================================================== -->
+  <!-- ALLOCATION TAB -->
   <section id="tab-allocate" class="tab-content">
 
     <div class="panel">
@@ -106,7 +102,6 @@
 
         <div class="header-actions">
 
-          <!-- IMPORT CSV -->
           <button
             class="btn btn-outline btn-sm"
             id="import-csv-btn"
@@ -116,7 +111,6 @@
             Import CSV
           </button>
 
-          <!-- IMPORTANT -->
           <input
             type="file"
             id="csv-file-input"
@@ -124,7 +118,6 @@
             hidden
           />
 
-          <!-- ADD ROW -->
           <button
             class="btn btn-outline btn-sm"
             id="add-student-row-btn"
@@ -139,12 +132,10 @@
       </div>
 
       <p class="panel-desc">
-
         CSV FORMAT:
 
         <strong>
-          RollNumber, SalesType, PaymentCategory,
-          Program, ExistingMentor
+          RollNumber, SalesType, PaymentCategory, Program, ExistingMentor
         </strong>
 
         <br><br>
@@ -157,24 +148,24 @@
 
         <br>
 
-        22002,Inside,Semester,MCA,
+        22002,Inside,Full Payment,B.Com,
+
+        <br>
+
+        22003,Channel,Semester,MCA,
 
         <br><br>
 
-        If ExistingMentor has value,
-        mentor will remain LOCKED and will not change.
-
+        Allocation will happen program-wise only among mentors mapped to that program.
+        Payment categories like Annual, Full Payment and Semester will be divided equally among eligible mentors.
       </p>
 
-      <!-- TABLE -->
       <div class="table-wrap">
 
         <table id="students-table">
 
           <thead>
-
             <tr>
-
               <th>#</th>
               <th>Roll Number</th>
               <th>Sales Type</th>
@@ -182,9 +173,7 @@
               <th>Program</th>
               <th>Existing Mentor</th>
               <th></th>
-
             </tr>
-
           </thead>
 
           <tbody id="students-tbody"></tbody>
@@ -193,7 +182,6 @@
 
       </div>
 
-      <!-- ACTIONS -->
       <div class="allocate-bar">
 
         <button
@@ -220,9 +208,7 @@
 
   </section>
 
-  <!-- =====================================================
-       RESULTS
-  ===================================================== -->
+  <!-- RESULTS TAB -->
   <section id="tab-results" class="tab-content">
 
     <div class="panel">
@@ -258,30 +244,24 @@
 
       </div>
 
-      <!-- SUMMARY -->
       <div
         id="summary-cards"
         class="summary-cards"
       ></div>
 
-      <!-- RESULTS -->
       <div
         id="mentor-result-blocks"
         class="mentor-results"
       ></div>
 
-      <!-- UNALLOCATED -->
       <div
         id="unallocated-section"
         style="display:none"
       >
 
         <h3 class="section-title warn">
-
           <i class="fas fa-exclamation-triangle"></i>
-
           Unallocated Students
-
         </h3>
 
         <div
@@ -297,14 +277,11 @@
 
 </main>
 
-<!-- =====================================================
-     MENTOR TEMPLATE
-===================================================== -->
+<!-- MENTOR TEMPLATE -->
 <template id="mentor-card-tpl">
 
   <div class="mentor-card">
 
-    <!-- HEADER -->
     <div class="mentor-card-header">
 
       <input
@@ -323,7 +300,6 @@
 
     </div>
 
-    <!-- CAPACITY -->
     <div class="mentor-capacity-row">
 
       <label>Capacity</label>
@@ -333,18 +309,17 @@
         type="number"
         min="1"
         max="5000"
-        value="10"
+        value="5000"
       />
 
       <span class="hint">students</span>
 
     </div>
 
-    <!-- PROGRAMS -->
     <div class="mentor-program-section">
 
       <label class="program-label">
-        Assign Programs
+        Assigned Programs
       </label>
 
       <div class="program-checkbox-grid">
@@ -398,27 +373,26 @@
 
     </div>
 
-    <!-- LIMITS -->
     <div class="mentor-limits-info">
 
       <span class="limit-badge channel">
-        CH ≤ 45%
+        Channel
       </span>
 
       <span class="limit-badge inside">
-        IN ≤ 55%
+        Inside
       </span>
 
       <span class="limit-badge annual">
-        AN ≤ 25%
+        Annual
       </span>
 
       <span class="limit-badge full">
-        FU ≤ 25%
+        Full Payment
       </span>
 
       <span class="limit-badge semester">
-        SE ≤ 50%
+        Semester
       </span>
 
     </div>
@@ -427,10 +401,8 @@
 
 </template>
 
-<!-- TOAST -->
 <div id="toast-container"></div>
 
-<!-- JS -->
 <script src="js/app.js"></script>
 
 </body>
