@@ -22,16 +22,13 @@
 <body>
 
 <header id="app-header">
-
   <div class="header-inner">
-
     <div class="header-brand">
       <i class="fas fa-user-graduate"></i>
       <span>Mentor Allocator</span>
     </div>
 
     <nav class="tab-nav">
-
       <button class="tab-btn active" data-tab="setup" type="button">
         <i class="fas fa-cog"></i>
         Setup
@@ -46,22 +43,15 @@
         <i class="fas fa-chart-bar"></i>
         Results
       </button>
-
     </nav>
-
   </div>
-
 </header>
 
 <main id="app-main">
 
-  <!-- SETUP TAB -->
   <section id="tab-setup" class="tab-content active">
-
     <div class="panel">
-
       <div class="panel-header">
-
         <h2>
           <i class="fas fa-users"></i>
           Mentors
@@ -75,33 +65,25 @@
           <i class="fas fa-plus"></i>
           Add Mentor
         </button>
-
       </div>
 
       <p class="panel-desc">
-        Default mentor mapping is auto-loaded. You can edit capacity or assigned programs if required.
+        Default mentor mapping is auto-loaded. Mentor capacity is capped at 850 learners. You can edit assigned programs if required.
       </p>
 
       <div id="mentors-list" class="mentors-grid"></div>
-
     </div>
-
   </section>
 
-  <!-- ALLOCATION TAB -->
   <section id="tab-allocate" class="tab-content">
-
     <div class="panel">
-
       <div class="panel-header">
-
         <h2>
           <i class="fas fa-magic"></i>
           Allocation Engine
         </h2>
 
         <div class="header-actions">
-
           <button
             class="btn btn-outline btn-sm"
             id="import-csv-btn"
@@ -126,9 +108,7 @@
             <i class="fas fa-plus"></i>
             Add Row
           </button>
-
         </div>
-
       </div>
 
       <p class="panel-desc">
@@ -161,9 +141,7 @@
       </p>
 
       <div class="table-wrap">
-
         <table id="students-table">
-
           <thead>
             <tr>
               <th>#</th>
@@ -177,13 +155,10 @@
           </thead>
 
           <tbody id="students-tbody"></tbody>
-
         </table>
-
       </div>
 
       <div class="allocate-bar">
-
         <button
           class="btn btn-primary btn-lg"
           id="run-allocation-btn"
@@ -201,34 +176,26 @@
           <i class="fas fa-trash"></i>
           Clear All
         </button>
-
       </div>
-
     </div>
-
   </section>
 
-  <!-- RESULTS TAB -->
   <section id="tab-results" class="tab-content">
-
     <div class="panel">
-
       <div class="panel-header">
-
         <h2>
           <i class="fas fa-check-circle"></i>
           Allocation Results
         </h2>
 
         <div class="header-actions">
-
           <button
             class="btn btn-outline btn-sm"
             id="export-results-btn"
             type="button"
           >
-            <i class="fas fa-file-export"></i>
-            Export CSV
+            <i class="fas fa-file-excel"></i>
+            Export Excel
           </button>
 
           <button
@@ -239,9 +206,7 @@
             <i class="fas fa-redo"></i>
             Reset
           </button>
-
         </div>
-
       </div>
 
       <div
@@ -258,7 +223,6 @@
         id="unallocated-section"
         style="display:none"
       >
-
         <h3 class="section-title warn">
           <i class="fas fa-exclamation-triangle"></i>
           Unallocated Students
@@ -268,22 +232,15 @@
           id="unallocated-list"
           class="unallocated-list"
         ></div>
-
       </div>
-
     </div>
-
   </section>
 
 </main>
 
-<!-- MENTOR TEMPLATE -->
 <template id="mentor-card-tpl">
-
   <div class="mentor-card">
-
     <div class="mentor-card-header">
-
       <input
         class="mentor-name-input"
         type="text"
@@ -297,33 +254,28 @@
       >
         <i class="fas fa-times"></i>
       </button>
-
     </div>
 
     <div class="mentor-capacity-row">
-
       <label>Capacity</label>
 
       <input
         class="mentor-capacity"
         type="number"
         min="1"
-        max="5000"
-        value="5000"
+        max="850"
+        value="850"
       />
 
-      <span class="hint">students</span>
-
+      <span class="hint">max 850 students</span>
     </div>
 
     <div class="mentor-program-section">
-
       <label class="program-label">
         Assigned Programs
       </label>
 
       <div class="program-checkbox-grid">
-
         <label class="program-chip">
           <input type="checkbox" value="BBA" class="mentor-program-checkbox"/>
           <span>BBA</span>
@@ -368,13 +320,10 @@
           <input type="checkbox" value="MSc in Mathematics" class="mentor-program-checkbox"/>
           <span>MSc in Mathematics</span>
         </label>
-
       </div>
-
     </div>
 
     <div class="mentor-limits-info">
-
       <span class="limit-badge channel">
         Channel
       </span>
@@ -394,15 +343,13 @@
       <span class="limit-badge semester">
         Semester
       </span>
-
     </div>
-
   </div>
-
 </template>
 
 <div id="toast-container"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="js/app.js"></script>
 
 </body>
