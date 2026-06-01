@@ -27,6 +27,8 @@ const SALES_TYPES = [
   'Inside'
 ];
 
+const DEFAULT_MENTOR_CAPACITY = 850;
+
 /* =====================================================
    DEFAULT MENTOR MAPPING
 ===================================================== */
@@ -137,7 +139,12 @@ function normalizeProgram(value) {
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
+  if (
+    val === 'full' ||
+    val === 'full payment' ||
+    val === 'fullpayment' ||
+    val === 'fu'
+  ) {
     return 'Full Payment';
   }
 
@@ -226,7 +233,7 @@ function loadDefaultMentors() {
     const mentor = {
       id: 'M' + (++mentorCounter),
       name: row[0],
-      capacity: 5000,
+      capacity: DEFAULT_MENTOR_CAPACITY,
       programs: [
         normalizeProgram(row[1]),
         normalizeProgram(row[2])
@@ -244,7 +251,7 @@ function addMentor() {
   const mentor = {
     id: 'M' + (++mentorCounter),
     name: '',
-    capacity: 5000,
+    capacity: DEFAULT_MENTOR_CAPACITY,
     programs: []
   };
 
@@ -274,7 +281,21 @@ function renderMentor(mentor) {
 
   capInput.addEventListener('input', e => {
     const value = parseInt(e.target.value, 10);
-    mentor.capacity = Number.isFinite(value) && value > 0 ? value : 1;
+
+    if (!Number.isFinite(value) || value < 1) {
+      mentor.capacity = 1;
+      capInput.value = 1;
+      return;
+    }
+
+    if (value > DEFAULT_MENTOR_CAPACITY) {
+      mentor.capacity = DEFAULT_MENTOR_CAPACITY;
+      capInput.value = DEFAULT_MENTOR_CAPACITY;
+      toast('Maximum mentor capacity is 850', 'warn');
+      return;
+    }
+
+    mentor.capacity = value;
   });
 
   const checkboxes = card.querySelectorAll('.mentor-program-checkbox');
@@ -633,10 +654,6 @@ function runAllocation() {
   const unallocated = [];
   const processedStudentIds = new Set();
 
-  /* =========================================
-     LOCK EXISTING MENTOR STUDENTS
-  ========================================= */
-
   students.forEach(student => {
     if (!student.existingMentor) return;
 
@@ -684,10 +701,6 @@ function runAllocation() {
 
     processedStudentIds.add(student.id);
   });
-
-  /* =========================================
-     PROGRAM-WISE PAYMENT-WISE DISTRIBUTION
-  ========================================= */
 
   const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
@@ -921,7 +934,7 @@ function resetDay() {
 }
 
 /* =====================================================
-   EXPORT CSV
+   EXPORT EXCEL
 ===================================================== */
 
 function initExport() {
@@ -932,17 +945,24 @@ function initExport() {
   btn.addEventListener('click', exportCSV);
 }
 
-function csvEscape(value) {
-  return `"${String(value ?? '').replaceAll('"', '""')}"`;
-}
-
 function exportCSV() {
   if (!STATE.lastResults) {
     toast('No results available', 'warn');
     return;
   }
 
-  const rows = [[
+  if (typeof XLSX === 'undefined') {
+    toast('Excel library not loaded. Please check HTML script.', 'error');
+    return;
+  }
+
+  const assigned = STATE.lastResults.assigned;
+  const unallocated = STATE.lastResults.unallocated;
+  const mentors = STATE.lastResults.mentors;
+  const counts = STATE.lastResults.counts;
+  const totalAllocated = assigned.length;
+
+  const sheet1 = [[
     'Roll Number',
     'Mentor',
     'Sales Type',
@@ -953,8 +973,8 @@ function exportCSV() {
     'Reason'
   ]];
 
-  STATE.lastResults.assigned.forEach(a => {
-    rows.push([
+  assigned.forEach(a => {
+    sheet1.push([
       a.rollNumber,
       a.mentorName,
       a.salesType,
@@ -966,8 +986,8 @@ function exportCSV() {
     ]);
   });
 
-  STATE.lastResults.unallocated.forEach(u => {
-    rows.push([
+  unallocated.forEach(u => {
+    sheet1.push([
       u.rollNumber,
       '',
       u.salesType,
@@ -979,27 +999,53 @@ function exportCSV() {
     ]);
   });
 
-  const csv = rows
-    .map(row => row.map(csvEscape).join(','))
-    .join('\n');
+  const sheet2 = [[
+    'Mentor',
+    'Assigned Learners',
+    'Allocation %',
+    'Channel',
+    'Inside',
+    'Annual',
+    'Full Payment',
+    'Semester',
+    'Capacity',
+    'Programs'
+  ]];
 
-  const blob = new Blob([csv], {
-    type: 'text/csv;charset=utf-8;'
+  mentors.forEach(m => {
+    const c = counts[m.id];
+    const assignedCount = assigned.filter(a => a.mentorName === m.name).length;
+
+    const allocationPercentage =
+      totalAllocated > 0
+        ? ((assignedCount / totalAllocated) * 100).toFixed(2) + '%'
+        : '0%';
+
+    sheet2.push([
+      m.name,
+      assignedCount,
+      allocationPercentage,
+      c.channel,
+      c.inside,
+      c.annual,
+      c.fullPayment,
+      c.semester,
+      m.capacity,
+      m.programs.join(', ')
+    ]);
   });
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const workbook = XLSX.utils.book_new();
 
-  a.href = url;
-  a.download = 'mentor-allocation.csv';
+  const ws1 = XLSX.utils.aoa_to_sheet(sheet1);
+  const ws2 = XLSX.utils.aoa_to_sheet(sheet2);
 
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  XLSX.utils.book_append_sheet(workbook, ws1, 'Learner Allocation');
+  XLSX.utils.book_append_sheet(workbook, ws2, 'Mentor Summary');
 
-  URL.revokeObjectURL(url);
+  XLSX.writeFile(workbook, 'mentor-allocation.xlsx');
 
-  toast('CSV Exported', 'success');
+  toast('Excel Exported', 'success');
 }
 
 /* =====================================================
