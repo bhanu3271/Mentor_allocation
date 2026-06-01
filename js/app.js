@@ -28,6 +28,46 @@ const SALES_TYPES = [
 ];
 
 /* =====================================================
+   DEFAULT MENTOR MAPPING
+===================================================== */
+
+const DEFAULT_MENTORS = [
+  ['Mentor 1', 'B.Com', 'MBA'],
+  ['Mentor 2', 'B.Com', 'MBA'],
+  ['Mentor 3', 'B.Com', 'MBA'],
+  ['Mentor 4', 'B.Com', 'MBA'],
+  ['Mentor 5', 'B.Com', 'MBA'],
+  ['Mentor 6', 'B.Com', 'MBA'],
+  ['Mentor 7', 'B.Com', 'MBA'],
+
+  ['Mentor 8', 'BBA', 'MBA'],
+  ['Mentor 9', 'BBA', 'MBA'],
+  ['Mentor 10', 'BBA', 'MBA'],
+  ['Mentor 11', 'BBA', 'MBA'],
+  ['Mentor 12', 'BBA', 'MBA'],
+  ['Mentor 13', 'BBA', 'MBA'],
+  ['Mentor 14', 'BBA', 'MBA'],
+  ['Mentor 15', 'BBA', 'MBA'],
+  ['Mentor 16', 'BBA', 'MBA'],
+  ['Mentor 17', 'BBA', 'MBA'],
+  ['Mentor 18', 'BBA', 'MBA'],
+  ['Mentor 19', 'BBA', 'MA.JMC'],
+  ['Mentor 20', 'BBA', 'MA in Economics'],
+
+  ['Mentor 21', 'BCA', 'MCA'],
+  ['Mentor 22', 'BCA', 'MCA'],
+  ['Mentor 23', 'BCA', 'MCA'],
+  ['Mentor 24', 'BCA', 'MCA'],
+  ['Mentor 25', 'BCA', 'MCA'],
+  ['Mentor 26', 'BCA', 'MCA'],
+  ['Mentor 27', 'BCA', 'MCA'],
+  ['Mentor 28', 'BCA', 'MCA'],
+
+  ['Mentor 29', 'M.Com', 'MBA'],
+  ['Mentor 30', 'MSc in Mathematics', 'MBA']
+];
+
+/* =====================================================
    STATE
 ===================================================== */
 
@@ -78,20 +118,27 @@ function normalizeLower(value) {
   return normalize(value).toLowerCase();
 }
 
+function normalizeProgram(value) {
+  const val = normalizeLower(value);
+
+  if (['b.com', 'bcom', 'b.com.', 'b.com '].includes(val)) return 'B.Com';
+  if (['bba'].includes(val)) return 'BBA';
+  if (['bca'].includes(val)) return 'BCA';
+  if (['mba'].includes(val)) return 'MBA';
+  if (['mca'].includes(val)) return 'MCA';
+  if (['m.com', 'mcom', 'm.com.'].includes(val)) return 'M.Com';
+  if (['majmc', 'ma.jmc', 'ma jmc', 'ma-jmc'].includes(val)) return 'MA.JMC';
+  if (['ma.eco', 'ma eco', 'ma economics', 'ma in economics'].includes(val)) return 'MA in Economics';
+  if (['msc math', 'msc mathematics', 'msc in mathematics', 'm.sc mathematics'].includes(val)) return 'MSc in Mathematics';
+
+  return normalize(value);
+}
+
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (
-    val === 'full' ||
-    val === 'full payment' ||
-    val === 'fullpayment' ||
-    val === 'fu'
-  ) {
+  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
     return 'Full Payment';
-  }
-
-  if (val === 'annual' || val === 'an') {
-    return 'Annual';
   }
 
   if (val === 'semester' || val === 'sem' || val === 'se') {
@@ -104,13 +151,7 @@ function normalizePaymentCategory(value) {
 function normalizeSalesType(value) {
   const val = normalizeLower(value);
 
-  if (val === 'inside' || val === 'in') {
-    return 'Inside';
-  }
-
-  if (val === 'channel' || val === 'ch') {
-    return 'Channel';
-  }
+  if (val === 'inside' || val === 'in') return 'Inside';
 
   return 'Channel';
 }
@@ -167,19 +208,43 @@ function switchToTab(tabName) {
 function initMentors() {
   const btn = document.getElementById('add-mentor-btn');
 
-  if (!btn) {
-    console.error('Add mentor button not found');
-    return;
+  if (btn) {
+    btn.addEventListener('click', addMentor);
   }
 
-  btn.addEventListener('click', addMentor);
+  loadDefaultMentors();
+}
+
+function loadDefaultMentors() {
+  STATE.mentors = [];
+  mentorCounter = 0;
+
+  const list = document.getElementById('mentors-list');
+  if (list) list.innerHTML = '';
+
+  DEFAULT_MENTORS.forEach(row => {
+    const mentor = {
+      id: 'M' + (++mentorCounter),
+      name: row[0],
+      capacity: 5000,
+      programs: [
+        normalizeProgram(row[1]),
+        normalizeProgram(row[2])
+      ].filter(Boolean)
+    };
+
+    STATE.mentors.push(mentor);
+    renderMentor(mentor);
+  });
+
+  toast('Default mentors loaded', 'success');
 }
 
 function addMentor() {
   const mentor = {
     id: 'M' + (++mentorCounter),
     name: '',
-    capacity: 10,
+    capacity: 5000,
     programs: []
   };
 
@@ -191,10 +256,7 @@ function renderMentor(mentor) {
   const template = document.getElementById('mentor-card-tpl');
   const list = document.getElementById('mentors-list');
 
-  if (!template || !list) {
-    console.error('Mentor template or mentors list not found');
-    return;
-  }
+  if (!template || !list) return;
 
   const clone = template.content.cloneNode(true);
   const card = clone.querySelector('.mentor-card');
@@ -219,6 +281,7 @@ function renderMentor(mentor) {
 
   checkboxes.forEach(cb => {
     cb.checked = mentor.programs.includes(cb.value);
+    cb.closest('.program-chip')?.classList.toggle('checked', cb.checked);
 
     cb.addEventListener('change', () => {
       mentor.programs = Array.from(checkboxes)
@@ -262,17 +325,14 @@ function initStudents() {
 function addStudentRow(data = {}) {
   const tbody = document.getElementById('students-tbody');
 
-  if (!tbody) {
-    console.error('Students tbody not found');
-    return;
-  }
+  if (!tbody) return;
 
   const student = {
     id: 'S' + (++studentCounter),
     rollNumber: normalize(data.rollNumber),
     salesType: normalizeSalesType(data.salesType),
     paymentCategory: normalizePaymentCategory(data.paymentCategory),
-    program: normalize(data.program) || PROGRAMS[0],
+    program: normalizeProgram(data.program) || PROGRAMS[0],
     existingMentor: normalize(data.existingMentor)
   };
 
@@ -341,7 +401,7 @@ function addStudentRow(data = {}) {
   });
 
   tr.querySelector('.s-program').addEventListener('change', e => {
-    student.program = e.target.value;
+    student.program = normalizeProgram(e.target.value);
   });
 
   tr.querySelector('.s-existing').addEventListener('input', e => {
@@ -472,10 +532,7 @@ function handleCSVImport(e) {
 function initAllocation() {
   const btn = document.getElementById('run-allocation-btn');
 
-  if (!btn) {
-    console.error('Run Allocation button not found');
-    return;
-  }
+  if (!btn) return;
 
   btn.addEventListener('click', runAllocation);
 }
@@ -487,17 +544,59 @@ function createEmptyCount() {
     annual: 0,
     fullPayment: 0,
     semester: 0,
-    total: 0
+    total: 0,
+    byProgram: {}
   };
+}
+
+function ensureProgramCount(countObj, program) {
+  if (!countObj.byProgram[program]) {
+    countObj.byProgram[program] = {
+      channel: 0,
+      inside: 0,
+      annual: 0,
+      fullPayment: 0,
+      semester: 0,
+      total: 0
+    };
+  }
+
+  return countObj.byProgram[program];
 }
 
 function incrementCounts(countObj, student) {
   const salesKey = getSalesKey(student.salesType);
   const paymentKey = getPaymentKey(student.paymentCategory);
+  const program = normalizeProgram(student.program);
 
   countObj[salesKey]++;
   countObj[paymentKey]++;
   countObj.total++;
+
+  const programCount = ensureProgramCount(countObj, program);
+
+  programCount[salesKey]++;
+  programCount[paymentKey]++;
+  programCount.total++;
+}
+
+function mentorCanTakeProgram(mentor, program) {
+  const normalizedProgram = normalizeProgram(program);
+
+  return mentor.programs
+    .map(p => normalizeProgram(p))
+    .includes(normalizedProgram);
+}
+
+function getEligibleMentorsForStudent(validMentors, counts, student) {
+  const program = normalizeProgram(student.program);
+
+  return validMentors.filter(m => {
+    const programAllowed = mentorCanTakeProgram(m, program);
+    const hasCapacity = counts[m.id].total < m.capacity;
+
+    return programAllowed && hasCapacity;
+  });
 }
 
 function runAllocation() {
@@ -509,7 +608,14 @@ function runAllocation() {
     return;
   }
 
-  const students = STATE.students.filter(s => normalize(s.rollNumber));
+  const students = STATE.students
+    .filter(s => normalize(s.rollNumber))
+    .map(s => ({
+      ...s,
+      program: normalizeProgram(s.program),
+      salesType: normalizeSalesType(s.salesType),
+      paymentCategory: normalizePaymentCategory(s.paymentCategory)
+    }));
 
   if (students.length === 0) {
     toast('Please add at least one student roll number', 'error');
@@ -548,6 +654,16 @@ function runAllocation() {
       return;
     }
 
+    if (!mentorCanTakeProgram(mentor, student.program)) {
+      unallocated.push({
+        ...student,
+        reason: `Existing mentor "${mentor.name}" is not mapped to ${student.program}`
+      });
+
+      processedStudentIds.add(student.id);
+      return;
+    }
+
     if (counts[mentor.id].total >= mentor.capacity) {
       unallocated.push({
         ...student,
@@ -570,35 +686,36 @@ function runAllocation() {
   });
 
   /* =========================================
-     NEW STUDENTS
-     Balanced by:
-     1. Total load
-     2. Payment category load
-     3. Sales type load
-     4. Capacity
-     5. Program eligibility
+     PROGRAM-WISE PAYMENT-WISE DISTRIBUTION
   ========================================= */
 
   const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
+  newStudents.sort((a, b) => {
+    const programCompare = a.program.localeCompare(b.program);
+    if (programCompare !== 0) return programCompare;
+
+    const paymentCompare = a.paymentCategory.localeCompare(b.paymentCategory);
+    if (paymentCompare !== 0) return paymentCompare;
+
+    return a.salesType.localeCompare(b.salesType);
+  });
+
   newStudents.forEach(student => {
+    const program = normalizeProgram(student.program);
     const salesKey = getSalesKey(student.salesType);
     const paymentKey = getPaymentKey(student.paymentCategory);
 
-    const eligibleMentors = validMentors.filter(m => {
-      const programAllowed =
-        !m.programs.length || m.programs.includes(student.program);
-
-      const hasCapacity =
-        counts[m.id].total < m.capacity;
-
-      return programAllowed && hasCapacity;
-    });
+    const eligibleMentors = getEligibleMentorsForStudent(
+      validMentors,
+      counts,
+      student
+    );
 
     if (eligibleMentors.length === 0) {
       unallocated.push({
         ...student,
-        reason: 'No eligible mentor found for program/capacity'
+        reason: `No mentor mapped to ${program} or capacity full`
       });
 
       return;
@@ -608,27 +725,21 @@ function runAllocation() {
     let bestScore = Infinity;
 
     eligibleMentors.forEach(m => {
-      const c = counts[m.id];
+      const overallCount = counts[m.id];
+      const programCount = ensureProgramCount(overallCount, program);
 
       const score =
-        (c.total * 10000) +
-        (c[paymentKey] * 1000) +
-        (c[salesKey] * 500);
+        (programCount[paymentKey] * 1000000) +
+        (programCount.total * 100000) +
+        (programCount[salesKey] * 10000) +
+        (overallCount[paymentKey] * 1000) +
+        (overallCount.total * 100);
 
       if (score < bestScore) {
         bestScore = score;
         bestMentor = m;
       }
     });
-
-    if (!bestMentor) {
-      unallocated.push({
-        ...student,
-        reason: 'Unable to find suitable mentor'
-      });
-
-      return;
-    }
 
     incrementCounts(counts[bestMentor.id], student);
 
@@ -689,7 +800,6 @@ function renderResults() {
 
   results.mentors.forEach(m => {
     const c = results.counts[m.id];
-
     const mentorStudents = results.assigned.filter(a => a.mentorName === m.name);
 
     const div = document.createElement('div');
@@ -718,7 +828,7 @@ function renderResults() {
 
         <p>
           Programs:
-          ${m.programs.length ? escapeHtml(m.programs.join(', ')) : 'All Programs'}
+          ${m.programs.length ? escapeHtml(m.programs.join(', ')) : 'No Program'}
         </p>
 
         <div class="student-mini-list">
@@ -784,21 +894,17 @@ function initReset() {
 function resetDay() {
   if (!confirm('Reset all?')) return;
 
-  STATE.mentors = [];
   STATE.students = [];
   STATE.lastResults = null;
 
-  mentorCounter = 0;
   studentCounter = 0;
 
-  const mentorsList = document.getElementById('mentors-list');
   const studentsTbody = document.getElementById('students-tbody');
   const summaryCards = document.getElementById('summary-cards');
   const mentorBlocks = document.getElementById('mentor-result-blocks');
   const unallocatedSection = document.getElementById('unallocated-section');
   const unallocatedList = document.getElementById('unallocated-list');
 
-  if (mentorsList) mentorsList.innerHTML = '';
   if (studentsTbody) studentsTbody.innerHTML = '';
   if (summaryCards) summaryCards.innerHTML = '';
   if (mentorBlocks) mentorBlocks.innerHTML = '';
@@ -809,9 +915,9 @@ function resetDay() {
     addStudentRow();
   }
 
-  switchToTab('setup');
+  switchToTab('allocate');
 
-  toast('Reset completed', 'success');
+  toast('Student data reset completed', 'success');
 }
 
 /* =====================================================
