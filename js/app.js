@@ -106,7 +106,12 @@ function normalizeProgram(value) {
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
+  if (
+    val === 'full' ||
+    val === 'full payment' ||
+    val === 'fullpayment' ||
+    val === 'fu'
+  ) {
     return 'Full Payment';
   }
 
@@ -138,6 +143,15 @@ function getSalesKey(salesType) {
   return normalizeSalesType(salesType) === 'Inside' ? 'inside' : 'channel';
 }
 
+function pct(part, total) {
+  if (!total) return '0%';
+  return ((part / total) * 100).toFixed(2) + '%';
+}
+
+/* =====================================================
+   TABS
+===================================================== */
+
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchToTab(btn.dataset.tab));
@@ -145,8 +159,13 @@ function initTabs() {
 }
 
 function switchToTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
 
   const btn = document.querySelector(`[data-tab="${tabName}"]`);
   const tab = document.getElementById(`tab-${tabName}`);
@@ -155,10 +174,16 @@ function switchToTab(tabName) {
   if (tab) tab.classList.add('active');
 }
 
+/* =====================================================
+   MENTORS
+===================================================== */
+
 function initMentors() {
   const btn = document.getElementById('add-mentor-btn');
 
-  if (btn) btn.addEventListener('click', addMentor);
+  if (btn) {
+    btn.addEventListener('click', addMentor);
+  }
 
   loadDefaultMentors();
 }
@@ -262,6 +287,10 @@ function renderMentor(mentor) {
 
   list.appendChild(card);
 }
+
+/* =====================================================
+   STUDENTS
+===================================================== */
 
 function initStudents() {
   const addBtn = document.getElementById('add-student-row-btn');
@@ -389,6 +418,10 @@ function clearStudents() {
   toast('Students cleared', 'success');
 }
 
+/* =====================================================
+   CSV IMPORT
+===================================================== */
+
 function initCSVImport() {
   const btn = document.getElementById('import-csv-btn');
   const input = document.getElementById('csv-file-input');
@@ -428,7 +461,6 @@ function parseCSVLine(line) {
 
 function handleCSVImport(e) {
   const file = e.target.files[0];
-
   if (!file) return;
 
   const reader = new FileReader();
@@ -467,6 +499,10 @@ function handleCSVImport(e) {
 
   reader.readAsText(file);
 }
+
+/* =====================================================
+   ALLOCATION ENGINE
+===================================================== */
 
 function initAllocation() {
   const btn = document.getElementById('run-allocation-btn');
@@ -689,6 +725,10 @@ function runAllocation() {
   toast(`Allocated ${assigned.length} learners`, 'success');
 }
 
+/* =====================================================
+   RESULTS
+===================================================== */
+
 function renderResults() {
   const results = STATE.lastResults;
   if (!results) return;
@@ -778,6 +818,10 @@ function renderResults() {
   }
 }
 
+/* =====================================================
+   RESET
+===================================================== */
+
 function initReset() {
   const btn = document.getElementById('reset-day-btn');
   if (!btn) return;
@@ -812,16 +856,15 @@ function resetDay() {
   toast('Student data reset completed', 'success');
 }
 
+/* =====================================================
+   EXPORT EXCEL
+===================================================== */
+
 function initExport() {
   const btn = document.getElementById('export-results-btn');
   if (!btn) return;
 
   btn.addEventListener('click', exportCSV);
-}
-
-function pct(part, total) {
-  if (!total) return '0%';
-  return ((part / total) * 100).toFixed(2) + '%';
 }
 
 function exportCSV() {
@@ -838,7 +881,6 @@ function exportCSV() {
   const assigned = STATE.lastResults.assigned;
   const unallocated = STATE.lastResults.unallocated;
   const mentors = STATE.lastResults.mentors;
-  const counts = STATE.lastResults.counts;
   const totalAllocated = assigned.length;
 
   const sheet1 = [[
@@ -883,6 +925,11 @@ function exportCSV() {
     'Assigned Learners',
     'Overall Allocation %',
 
+    'Program',
+    'Program Learners Assigned',
+    'Program % within Mentor',
+    'Program % of Overall Allocation',
+
     'Channel Total',
     'Channel Annual',
     'Channel Annual %',
@@ -899,55 +946,81 @@ function exportCSV() {
     'Inside Semester',
     'Inside Semester %',
 
-    'Overall Annual',
-    'Overall Full Payment',
-    'Overall Semester',
     'Capacity',
-    'Programs'
+    'Assigned Programs'
   ]];
 
   mentors.forEach(m => {
-    const c = counts[m.id];
     const mentorRows = assigned.filter(a => a.mentorName === m.name);
+    const mentorTotal = mentorRows.length;
 
-    const channelRows = mentorRows.filter(a => a.salesType === 'Channel');
-    const insideRows = mentorRows.filter(a => a.salesType === 'Inside');
+    const mentorPrograms = [...new Set(mentorRows.map(a => a.program))];
 
-    const channelAnnual = channelRows.filter(a => a.paymentCategory === 'Annual').length;
-    const channelFull = channelRows.filter(a => a.paymentCategory === 'Full Payment').length;
-    const channelSemester = channelRows.filter(a => a.paymentCategory === 'Semester').length;
+    if (mentorPrograms.length === 0) {
+      sheet2.push([
+        m.name,
+        0,
+        '0%',
 
-    const insideAnnual = insideRows.filter(a => a.paymentCategory === 'Annual').length;
-    const insideFull = insideRows.filter(a => a.paymentCategory === 'Full Payment').length;
-    const insideSemester = insideRows.filter(a => a.paymentCategory === 'Semester').length;
+        '',
+        0,
+        '0%',
+        '0%',
 
-    sheet2.push([
-      m.name,
-      mentorRows.length,
-      pct(mentorRows.length, totalAllocated),
+        0, 0, '0%', 0, '0%', 0, '0%',
+        0, 0, '0%', 0, '0%', 0, '0%',
 
-      channelRows.length,
-      channelAnnual,
-      pct(channelAnnual, channelRows.length),
-      channelFull,
-      pct(channelFull, channelRows.length),
-      channelSemester,
-      pct(channelSemester, channelRows.length),
+        m.capacity,
+        m.programs.join(', ')
+      ]);
 
-      insideRows.length,
-      insideAnnual,
-      pct(insideAnnual, insideRows.length),
-      insideFull,
-      pct(insideFull, insideRows.length),
-      insideSemester,
-      pct(insideSemester, insideRows.length),
+      return;
+    }
 
-      c.annual,
-      c.fullPayment,
-      c.semester,
-      m.capacity,
-      m.programs.join(', ')
-    ]);
+    mentorPrograms.forEach(program => {
+      const programRows = mentorRows.filter(a => a.program === program);
+
+      const channelRows = programRows.filter(a => a.salesType === 'Channel');
+      const insideRows = programRows.filter(a => a.salesType === 'Inside');
+
+      const channelAnnual = channelRows.filter(a => a.paymentCategory === 'Annual').length;
+      const channelFull = channelRows.filter(a => a.paymentCategory === 'Full Payment').length;
+      const channelSemester = channelRows.filter(a => a.paymentCategory === 'Semester').length;
+
+      const insideAnnual = insideRows.filter(a => a.paymentCategory === 'Annual').length;
+      const insideFull = insideRows.filter(a => a.paymentCategory === 'Full Payment').length;
+      const insideSemester = insideRows.filter(a => a.paymentCategory === 'Semester').length;
+
+      sheet2.push([
+        m.name,
+        mentorTotal,
+        pct(mentorTotal, totalAllocated),
+
+        program,
+        programRows.length,
+        pct(programRows.length, mentorTotal),
+        pct(programRows.length, totalAllocated),
+
+        channelRows.length,
+        channelAnnual,
+        pct(channelAnnual, channelRows.length),
+        channelFull,
+        pct(channelFull, channelRows.length),
+        channelSemester,
+        pct(channelSemester, channelRows.length),
+
+        insideRows.length,
+        insideAnnual,
+        pct(insideAnnual, insideRows.length),
+        insideFull,
+        pct(insideFull, insideRows.length),
+        insideSemester,
+        pct(insideSemester, insideRows.length),
+
+        m.capacity,
+        m.programs.join(', ')
+      ]);
+    });
   });
 
   const workbook = XLSX.utils.book_new();
