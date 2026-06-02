@@ -10,15 +10,15 @@ const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 850;
 
 const DEFAULT_MENTORS = [
-  ['Mentor 1', 'B.Com', 'MBA'],
-  ['Mentor 2', 'B.Com', 'MBA'],
-  ['Mentor 3', 'B.Com', 'MBA'],
+  ['Ankita Kumari', 'B.Com', 'MBA'],
+  ['Jennifer Rebecca Paul', 'B.Com', 'MBA'],
+  ['M Madhina', 'B.Com', 'MBA'],
   ['Mentor 4', 'B.Com', 'MBA'],
   ['Mentor 5', 'B.Com', 'MBA'],
   ['Mentor 6', 'B.Com', 'MBA'],
   ['Mentor 7', 'B.Com', 'MBA'],
 
-  ['Mentor 8', 'BBA', 'MBA'],
+  ['Nourin Alom Barbhuiya', 'BBA', 'MBA'],
   ['Mentor 9', 'BBA', 'MBA'],
   ['Mentor 10', 'BBA', 'MBA'],
   ['Mentor 11', 'BBA', 'MBA'],
@@ -32,8 +32,8 @@ const DEFAULT_MENTORS = [
   ['Mentor 19', 'BBA', 'MA.JMC'],
   ['Mentor 20', 'BBA', 'MA in Economics'],
 
-  ['Mentor 21', 'BCA', 'MCA'],
-  ['Mentor 22', 'BCA', 'MCA'],
+  ['Kishan Shreyasvi Rao Kandregula', 'BCA', 'MCA'],
+  ['Siddhant Kumar Sinha', 'BCA', 'MCA'],
   ['Mentor 23', 'BCA', 'MCA'],
   ['Mentor 24', 'BCA', 'MCA'],
   ['Mentor 25', 'BCA', 'MCA'],
@@ -607,6 +607,7 @@ function runAllocation() {
   const unallocated = [];
   const processedStudentIds = new Set();
 
+  /* Existing mentors remain locked and unchanged */
   students.forEach(student => {
     if (!student.existingMentor) return;
 
@@ -617,26 +618,11 @@ function runAllocation() {
     if (!mentor) {
       unallocated.push({
         ...student,
+        mentorName: student.existingMentor,
+        locked: true,
         reason: `Existing mentor "${student.existingMentor}" not found`
       });
-      processedStudentIds.add(student.id);
-      return;
-    }
 
-    if (!mentorCanTakeProgram(mentor, student.program)) {
-      unallocated.push({
-        ...student,
-        reason: `Existing mentor "${mentor.name}" is not mapped to ${student.program}`
-      });
-      processedStudentIds.add(student.id);
-      return;
-    }
-
-    if (counts[mentor.id].total >= mentor.capacity) {
-      unallocated.push({
-        ...student,
-        reason: `Existing mentor "${mentor.name}" capacity full`
-      });
       processedStudentIds.add(student.id);
       return;
     }
@@ -652,6 +638,7 @@ function runAllocation() {
     processedStudentIds.add(student.id);
   });
 
+  /* Only blank mentor learners are newly allocated */
   const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
   newStudents.sort((a, b) => {
@@ -690,12 +677,15 @@ function runAllocation() {
       const overallCount = counts[m.id];
       const programCount = ensureProgramCount(overallCount, program);
 
+      const remainingCapacity = m.capacity - overallCount.total;
+
       const score =
-        (programCount[paymentKey] * 1000000) +
-        (programCount.total * 100000) +
-        (programCount[salesKey] * 10000) +
-        (overallCount[paymentKey] * 1000) +
-        (overallCount.total * 100);
+        (programCount[paymentKey] * 10000000) +
+        (programCount.total * 1000000) +
+        (programCount[salesKey] * 100000) +
+        (overallCount[paymentKey] * 10000) +
+        (overallCount.total * 1000) -
+        (remainingCapacity * 10);
 
       if (score < bestScore) {
         bestScore = score;
@@ -910,11 +900,11 @@ function exportCSV() {
   unallocated.forEach(u => {
     sheet1.push([
       u.rollNumber,
-      '',
+      u.mentorName || '',
       u.salesType,
       u.paymentCategory,
       u.program,
-      'No',
+      u.locked ? 'Yes' : 'No',
       'Unallocated',
       u.reason || ''
     ]);
@@ -946,6 +936,8 @@ function exportCSV() {
     'Inside Semester',
     'Inside Semester %',
 
+    'Locked Learners',
+    'Newly Allocated Learners',
     'Capacity',
     'Assigned Programs'
   ]];
@@ -953,6 +945,8 @@ function exportCSV() {
   mentors.forEach(m => {
     const mentorRows = assigned.filter(a => a.mentorName === m.name);
     const mentorTotal = mentorRows.length;
+    const lockedCount = mentorRows.filter(a => a.locked).length;
+    const newCount = mentorRows.filter(a => !a.locked).length;
 
     const mentorPrograms = [...new Set(mentorRows.map(a => a.program))];
 
@@ -961,7 +955,6 @@ function exportCSV() {
         m.name,
         0,
         '0%',
-
         '',
         0,
         '0%',
@@ -970,6 +963,8 @@ function exportCSV() {
         0, 0, '0%', 0, '0%', 0, '0%',
         0, 0, '0%', 0, '0%', 0, '0%',
 
+        0,
+        0,
         m.capacity,
         m.programs.join(', ')
       ]);
@@ -1017,6 +1012,8 @@ function exportCSV() {
         insideSemester,
         pct(insideSemester, insideRows.length),
 
+        lockedCount,
+        newCount,
         m.capacity,
         m.programs.join(', ')
       ]);
