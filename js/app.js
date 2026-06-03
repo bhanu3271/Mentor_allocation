@@ -16,11 +16,9 @@ const DEFAULT_MENTORS = [
   ['Mentor 9', 'BBA', 'MBA'],
   ['Mentor 10', 'BBA', 'MBA'],
   ['Mentor 11', 'BBA', 'MBA'],
-
-
   ['Kishan Shreyasvi Rao Kandregula', 'BCA', 'MCA'],
   ['Siddhant Kumar Sinha', 'BCA', 'MCA']
-
+  ]
 const STATE = {
   mentors: [],
   students: [],
