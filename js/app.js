@@ -19,7 +19,7 @@ const DEFAULT_MENTORS = [
 
 
   ['Kishan Shreyasvi Rao Kandregula', 'BCA', 'MCA'],
-  ['Siddhant Kumar Sinha', 'BCA', 'MCA'],
+  ['Siddhant Kumar Sinha', 'BCA', 'MCA']
 
 const STATE = {
   mentors: [],
