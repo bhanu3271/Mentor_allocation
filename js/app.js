@@ -12,38 +12,14 @@ const DEFAULT_MENTOR_CAPACITY = 850;
 const DEFAULT_MENTORS = [
   ['Ankita Kumari', 'B.Com', 'MBA'],
   ['Jennifer Rebecca Paul', 'B.Com', 'MBA'],
-  ['M Madhina', 'B.Com', 'MBA'],
-  ['Mentor 4', 'B.Com', 'MBA'],
-  ['Mentor 5', 'B.Com', 'MBA'],
-  ['Mentor 6', 'B.Com', 'MBA'],
-  ['Mentor 7', 'B.Com', 'MBA'],
-
   ['Nourin Alom Barbhuiya', 'BBA', 'MBA'],
   ['Mentor 9', 'BBA', 'MBA'],
   ['Mentor 10', 'BBA', 'MBA'],
   ['Mentor 11', 'BBA', 'MBA'],
-  ['Mentor 12', 'BBA', 'MBA'],
-  ['Mentor 13', 'BBA', 'MBA'],
-  ['Mentor 14', 'BBA', 'MBA'],
-  ['Mentor 15', 'BBA', 'MBA'],
-  ['Mentor 16', 'BBA', 'MBA'],
-  ['Mentor 17', 'BBA', 'MBA'],
-  ['Mentor 18', 'BBA', 'MBA'],
-  ['Mentor 19', 'BBA', 'MA.JMC'],
-  ['Mentor 20', 'BBA', 'MA in Economics'],
+
 
   ['Kishan Shreyasvi Rao Kandregula', 'BCA', 'MCA'],
   ['Siddhant Kumar Sinha', 'BCA', 'MCA'],
-  ['Mentor 23', 'BCA', 'MCA'],
-  ['Mentor 24', 'BCA', 'MCA'],
-  ['Mentor 25', 'BCA', 'MCA'],
-  ['Mentor 26', 'BCA', 'MCA'],
-  ['Mentor 27', 'BCA', 'MCA'],
-  ['Mentor 28', 'BCA', 'MCA'],
-
-  ['Mentor 29', 'M.Com', 'MBA'],
-  ['Mentor 30', 'MSc in Mathematics', 'MBA']
-];
 
 const STATE = {
   mentors: [],
