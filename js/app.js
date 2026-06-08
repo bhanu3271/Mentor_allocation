@@ -7,7 +7,7 @@ const PROGRAMS = [
 
 const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
-const DEFAULT_MENTOR_CAPACITY = 600;
+const DEFAULT_MENTOR_CAPACITY = 800;
 
 const DEFAULT_MENTORS = [
   ['M Madhina', 'B.Com', 'MBA'],
