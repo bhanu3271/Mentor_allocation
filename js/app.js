@@ -7,15 +7,13 @@ const PROGRAMS = [
 
 const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
-const DEFAULT_MENTOR_CAPACITY = 850;
+const DEFAULT_MENTOR_CAPACITY = 750;
 
 const DEFAULT_MENTORS = [
-  ['Ankita Kumari', 'B.Com', 'MBA'],
+  ['M Madhina', 'B.Com', 'MBA'],
   ['Jennifer Rebecca Paul', 'B.Com', 'MBA'],
+  ['Ankita Kumari', 'BBA', 'MBA'],
   ['Nourin Alom Barbhuiya', 'BBA', 'MBA'],
-  ['Mentor 9', 'BBA', 'MBA'],
-  ['Mentor 10', 'BBA', 'MBA'],
-  ['Mentor 11', 'BBA', 'MBA'],
   ['Kishan Shreyasvi Rao Kandregula', 'BCA', 'MCA'],
   ['Siddhant Kumar Sinha', 'BCA', 'MCA']
   ]
