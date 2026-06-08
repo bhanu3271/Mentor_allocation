@@ -30,7 +30,6 @@ let studentCounter = 0;
 
 function toast(msg, type = 'info') {
   const container = document.getElementById('toast-container');
-
   if (!container) {
     alert(msg);
     return;
@@ -40,7 +39,6 @@ function toast(msg, type = 'info') {
   div.className = `toast ${type}`;
   div.innerHTML = `<span>${msg}</span>`;
   container.appendChild(div);
-
   setTimeout(() => div.remove(), 3000);
 }
 
@@ -80,12 +78,7 @@ function normalizeProgram(value) {
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (
-    val === 'full' ||
-    val === 'full payment' ||
-    val === 'fullpayment' ||
-    val === 'fu'
-  ) {
+  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
     return 'Full Payment';
   }
 
@@ -98,18 +91,13 @@ function normalizePaymentCategory(value) {
 
 function normalizeSalesType(value) {
   const val = normalizeLower(value);
-
-  if (val === 'inside' || val === 'in') return 'Inside';
-
-  return 'Channel';
+  return val === 'inside' || val === 'in' ? 'Inside' : 'Channel';
 }
 
 function getPaymentKey(paymentCategory) {
   const value = normalizePaymentCategory(paymentCategory);
-
   if (value === 'Full Payment') return 'fullPayment';
   if (value === 'Semester') return 'semester';
-
   return 'annual';
 }
 
@@ -129,13 +117,8 @@ function initTabs() {
 }
 
 function switchToTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-
-  document.querySelectorAll('.tab-content').forEach(tab => {
-    tab.classList.remove('active');
-  });
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
 
   const btn = document.querySelector(`[data-tab="${tabName}"]`);
   const tab = document.getElementById(`tab-${tabName}`);
@@ -150,10 +133,7 @@ function switchToTab(tabName) {
 
 function initMentors() {
   const btn = document.getElementById('add-mentor-btn');
-
-  if (btn) {
-    btn.addEventListener('click', addMentor);
-  }
+  if (btn) btn.addEventListener('click', addMentor);
 
   loadDefaultMentors();
 }
@@ -170,10 +150,7 @@ function loadDefaultMentors() {
       id: 'M' + (++mentorCounter),
       name: row[0],
       capacity: DEFAULT_MENTOR_CAPACITY,
-      programs: [
-        normalizeProgram(row[1]),
-        normalizeProgram(row[2])
-      ].filter(Boolean)
+      programs: [normalizeProgram(row[1]), normalizeProgram(row[2])].filter(Boolean)
     };
 
     STATE.mentors.push(mentor);
@@ -269,14 +246,11 @@ function initStudents() {
   if (addBtn) addBtn.addEventListener('click', () => addStudentRow());
   if (clearBtn) clearBtn.addEventListener('click', clearStudents);
 
-  for (let i = 0; i < 3; i++) {
-    addStudentRow();
-  }
+  for (let i = 0; i < 3; i++) addStudentRow();
 }
 
 function addStudentRow(data = {}) {
   const tbody = document.getElementById('students-tbody');
-
   if (!tbody) return;
 
   const student = {
@@ -426,13 +400,11 @@ function parseCSVLine(line) {
   }
 
   result.push(current.trim());
-
   return result.map(c => c.replace(/^"|"$/g, '').trim());
 }
 
 function handleCSVImport(e) {
   const file = e.target.files[0];
-
   if (!file) return;
 
   const reader = new FileReader();
@@ -446,10 +418,7 @@ function handleCSVImport(e) {
     lines.forEach((line, index) => {
       const cols = parseCSVLine(line);
 
-      if (index === 0 && cols.join(',').toLowerCase().includes('roll')) {
-        return;
-      }
-
+      if (index === 0 && cols.join(',').toLowerCase().includes('roll')) return;
       if (!cols[0]) return;
 
       addStudentRow({
@@ -468,7 +437,6 @@ function handleCSVImport(e) {
   };
 
   reader.onerror = () => toast('Unable to read CSV file', 'error');
-
   reader.readAsText(file);
 }
 
@@ -478,7 +446,6 @@ function handleCSVImport(e) {
 
 function initAllocation() {
   const btn = document.getElementById('run-allocation-btn');
-
   if (!btn) return;
 
   btn.addEventListener('click', runAllocation);
@@ -535,27 +502,37 @@ function mentorCanTakeProgram(mentor, program) {
     .includes(normalizedProgram);
 }
 
+function getEligibleMentorsForProgram(validMentors, program) {
+  return validMentors.filter(m => mentorCanTakeProgram(m, program));
+}
+
 function getEligibleMentorsForStudent(validMentors, counts, student) {
   const program = normalizeProgram(student.program);
 
   return validMentors.filter(m => {
     const programAllowed = mentorCanTakeProgram(m, program);
     const hasCapacity = counts[m.id].total < m.capacity;
-
     return programAllowed && hasCapacity;
   });
 }
 
-function getBalancedMentorsForProgram(eligibleMentors, counts, program) {
-  const programCounts = eligibleMentors.map(m => {
-    return ensureProgramCount(counts[m.id], program).total;
+function buildProgramTargets(students, validMentors) {
+  const targets = {};
+
+  PROGRAMS.forEach(program => {
+    const totalProgramLearners = students.filter(s => s.program === program).length;
+    const eligibleMentors = getEligibleMentorsForProgram(validMentors, program);
+
+    if (!totalProgramLearners || !eligibleMentors.length) return;
+
+    targets[program] = {
+      total: totalProgramLearners,
+      mentorCount: eligibleMentors.length,
+      targetPerMentor: totalProgramLearners / eligibleMentors.length
+    };
   });
 
-  const minProgramCount = Math.min(...programCounts);
-
-  return eligibleMentors.filter(m => {
-    return ensureProgramCount(counts[m.id], program).total === minProgramCount;
-  });
+  return targets;
 }
 
 function runAllocation() {
@@ -583,15 +560,17 @@ function runAllocation() {
   }
 
   const counts = {};
-
   validMentors.forEach(m => {
     counts[m.id] = createEmptyCount();
   });
+
+  const programTargets = buildProgramTargets(students, validMentors);
 
   const assigned = [];
   const unallocated = [];
   const processedStudentIds = new Set();
 
+  // 1. Count locked existing learners first
   students.forEach(student => {
     if (!student.existingMentor) return;
 
@@ -622,6 +601,7 @@ function runAllocation() {
     processedStudentIds.add(student.id);
   });
 
+  // 2. Allocate only non-locked learners based on program target gap
   const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
   newStudents.sort((a, b) => {
@@ -638,6 +618,7 @@ function runAllocation() {
     const program = normalizeProgram(student.program);
     const salesKey = getSalesKey(student.salesType);
     const paymentKey = getPaymentKey(student.paymentCategory);
+    const targetInfo = programTargets[program];
 
     const eligibleMentors = getEligibleMentorsForStudent(
       validMentors,
@@ -645,7 +626,7 @@ function runAllocation() {
       student
     );
 
-    if (eligibleMentors.length === 0) {
+    if (!eligibleMentors.length) {
       unallocated.push({
         ...student,
         reason: `No mentor mapped to ${program} or capacity full`
@@ -653,23 +634,21 @@ function runAllocation() {
       return;
     }
 
-    const balancedMentors = getBalancedMentorsForProgram(
-      eligibleMentors,
-      counts,
-      program
-    );
-
     let bestMentor = null;
     let bestScore = Infinity;
 
-    balancedMentors.forEach(m => {
+    eligibleMentors.forEach(m => {
       const overallCount = counts[m.id];
       const programCount = ensureProgramCount(overallCount, program);
 
+      const target = targetInfo ? targetInfo.targetPerMentor : 0;
+      const gap = target - programCount.total;
+
       const score =
-        (programCount[paymentKey] * 1000000) +
-        (programCount[salesKey] * 100000) +
-        (overallCount[paymentKey] * 10000) +
+        (-gap * 100000000) +
+        (programCount.total * 1000000) +
+        (programCount[paymentKey] * 100000) +
+        (programCount[salesKey] * 10000) +
         (overallCount.total * 1000);
 
       if (score < bestScore) {
@@ -691,7 +670,8 @@ function runAllocation() {
     assigned,
     unallocated,
     counts,
-    mentors: validMentors
+    mentors: validMentors,
+    programTargets
   };
 
   renderResults();
@@ -706,7 +686,6 @@ function runAllocation() {
 
 function renderResults() {
   const results = STATE.lastResults;
-
   if (!results) return;
 
   const summary = document.getElementById('summary-cards');
@@ -800,7 +779,6 @@ function renderResults() {
 
 function initReset() {
   const btn = document.getElementById('reset-day-btn');
-
   if (!btn) return;
 
   btn.addEventListener('click', resetDay);
@@ -825,9 +803,7 @@ function resetDay() {
   if (unallocatedSection) unallocatedSection.style.display = 'none';
   if (unallocatedList) unallocatedList.innerHTML = '';
 
-  for (let i = 0; i < 3; i++) {
-    addStudentRow();
-  }
+  for (let i = 0; i < 3; i++) addStudentRow();
 
   switchToTab('allocate');
   toast('Student data reset completed', 'success');
@@ -839,7 +815,6 @@ function resetDay() {
 
 function initExport() {
   const btn = document.getElementById('export-results-btn');
-
   if (!btn) return;
 
   btn.addEventListener('click', exportCSV);
@@ -903,7 +878,9 @@ function exportCSV() {
     'Assigned Learners',
     'Overall Allocation %',
     'Program',
+    'Program Target',
     'Program Learners Assigned',
+    'Program Gap',
     'Program % within Mentor',
     'Program % of Overall Allocation',
     'Channel Total',
@@ -931,20 +908,14 @@ function exportCSV() {
     const mentorTotal = mentorRows.length;
     const lockedCount = mentorRows.filter(a => a.locked).length;
     const newCount = mentorRows.filter(a => !a.locked).length;
-    const mentorPrograms = [...new Set(mentorRows.map(a => a.program))];
-
-    if (mentorPrograms.length === 0) {
-      sheet2.push([
-        m.name, 0, '0%', '', 0, '0%', '0%',
-        0, 0, '0%', 0, '0%', 0, '0%',
-        0, 0, '0%', 0, '0%', 0, '0%',
-        0, 0, m.capacity, m.programs.join(', ')
-      ]);
-      return;
-    }
+    const mentorPrograms = [...new Set([...m.programs, ...mentorRows.map(a => a.program)])];
 
     mentorPrograms.forEach(program => {
       const programRows = mentorRows.filter(a => a.program === program);
+      const targetInfo = STATE.lastResults.programTargets?.[program];
+      const target = targetInfo ? targetInfo.targetPerMentor : 0;
+      const gap = target - programRows.length;
+
       const channelRows = programRows.filter(a => a.salesType === 'Channel');
       const insideRows = programRows.filter(a => a.salesType === 'Inside');
 
@@ -961,7 +932,9 @@ function exportCSV() {
         mentorTotal,
         pct(mentorTotal, totalAllocated),
         program,
+        Number(target.toFixed(2)),
         programRows.length,
+        Number(gap.toFixed(2)),
         pct(programRows.length, mentorTotal),
         pct(programRows.length, totalAllocated),
         channelRows.length,
