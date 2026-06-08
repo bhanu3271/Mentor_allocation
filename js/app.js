@@ -17,7 +17,8 @@ const DEFAULT_MENTORS = [
   ['Mentor 2', 'BBA', 'MBA'],
   ['Kishan Shreyasvi Rao Kandregula', 'BCA', 'MCA'],
   ['Siddhant Kumar Sinha', 'BCA', 'MCA']
-  ]
+];
+
 const STATE = {
   mentors: [],
   students: [],
@@ -97,14 +98,18 @@ function normalizePaymentCategory(value) {
 
 function normalizeSalesType(value) {
   const val = normalizeLower(value);
+
   if (val === 'inside' || val === 'in') return 'Inside';
+
   return 'Channel';
 }
 
 function getPaymentKey(paymentCategory) {
   const value = normalizePaymentCategory(paymentCategory);
+
   if (value === 'Full Payment') return 'fullPayment';
   if (value === 'Semester') return 'semester';
+
   return 'annual';
 }
 
@@ -124,8 +129,13 @@ function initTabs() {
 }
 
 function switchToTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
 
   const btn = document.querySelector(`[data-tab="${tabName}"]`);
   const tab = document.getElementById(`tab-${tabName}`);
@@ -140,7 +150,10 @@ function switchToTab(tabName) {
 
 function initMentors() {
   const btn = document.getElementById('add-mentor-btn');
-  if (btn) btn.addEventListener('click', addMentor);
+
+  if (btn) {
+    btn.addEventListener('click', addMentor);
+  }
 
   loadDefaultMentors();
 }
@@ -214,7 +227,7 @@ function renderMentor(mentor) {
     if (value > DEFAULT_MENTOR_CAPACITY) {
       mentor.capacity = DEFAULT_MENTOR_CAPACITY;
       capInput.value = DEFAULT_MENTOR_CAPACITY;
-      toast('Maximum mentor capacity is 850', 'warn');
+      toast('Maximum mentor capacity is 800', 'warn');
       return;
     }
 
@@ -256,11 +269,14 @@ function initStudents() {
   if (addBtn) addBtn.addEventListener('click', () => addStudentRow());
   if (clearBtn) clearBtn.addEventListener('click', clearStudents);
 
-  for (let i = 0; i < 3; i++) addStudentRow();
+  for (let i = 0; i < 3; i++) {
+    addStudentRow();
+  }
 }
 
 function addStudentRow(data = {}) {
   const tbody = document.getElementById('students-tbody');
+
   if (!tbody) return;
 
   const student = {
@@ -272,7 +288,9 @@ function addStudentRow(data = {}) {
     existingMentor: normalize(data.existingMentor)
   };
 
-  if (!PROGRAMS.includes(student.program)) student.program = PROGRAMS[0];
+  if (!PROGRAMS.includes(student.program)) {
+    student.program = PROGRAMS[0];
+  }
 
   STATE.students.push(student);
 
@@ -414,6 +432,7 @@ function parseCSVLine(line) {
 
 function handleCSVImport(e) {
   const file = e.target.files[0];
+
   if (!file) return;
 
   const reader = new FileReader();
@@ -427,7 +446,10 @@ function handleCSVImport(e) {
     lines.forEach((line, index) => {
       const cols = parseCSVLine(line);
 
-      if (index === 0 && cols.join(',').toLowerCase().includes('roll')) return;
+      if (index === 0 && cols.join(',').toLowerCase().includes('roll')) {
+        return;
+      }
+
       if (!cols[0]) return;
 
       addStudentRow({
@@ -456,6 +478,7 @@ function handleCSVImport(e) {
 
 function initAllocation() {
   const btn = document.getElementById('run-allocation-btn');
+
   if (!btn) return;
 
   btn.addEventListener('click', runAllocation);
@@ -523,23 +546,15 @@ function getEligibleMentorsForStudent(validMentors, counts, student) {
   });
 }
 
-/*
-  Main rule:
-  If one mentor already has higher learners for a program,
-  new learners will NOT go to that mentor until all other eligible mentors
-  for the same program come close/equal.
-*/
 function getBalancedMentorsForProgram(eligibleMentors, counts, program) {
   const programCounts = eligibleMentors.map(m => {
-    const c = ensureProgramCount(counts[m.id], program);
-    return c.total;
+    return ensureProgramCount(counts[m.id], program).total;
   });
 
   const minProgramCount = Math.min(...programCounts);
 
   return eligibleMentors.filter(m => {
-    const c = ensureProgramCount(counts[m.id], program);
-    return c.total === minProgramCount;
+    return ensureProgramCount(counts[m.id], program).total === minProgramCount;
   });
 }
 
@@ -577,7 +592,6 @@ function runAllocation() {
   const unallocated = [];
   const processedStudentIds = new Set();
 
-  /* Existing mentors remain locked and unchanged */
   students.forEach(student => {
     if (!student.existingMentor) return;
 
@@ -692,6 +706,7 @@ function runAllocation() {
 
 function renderResults() {
   const results = STATE.lastResults;
+
   if (!results) return;
 
   const summary = document.getElementById('summary-cards');
@@ -785,6 +800,7 @@ function renderResults() {
 
 function initReset() {
   const btn = document.getElementById('reset-day-btn');
+
   if (!btn) return;
 
   btn.addEventListener('click', resetDay);
@@ -809,7 +825,9 @@ function resetDay() {
   if (unallocatedSection) unallocatedSection.style.display = 'none';
   if (unallocatedList) unallocatedList.innerHTML = '';
 
-  for (let i = 0; i < 3; i++) addStudentRow();
+  for (let i = 0; i < 3; i++) {
+    addStudentRow();
+  }
 
   switchToTab('allocate');
   toast('Student data reset completed', 'success');
@@ -821,6 +839,7 @@ function resetDay() {
 
 function initExport() {
   const btn = document.getElementById('export-results-btn');
+
   if (!btn) return;
 
   btn.addEventListener('click', exportCSV);
