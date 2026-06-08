@@ -9,6 +9,14 @@ const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 800;
 
+/* BCA/MCA split rule */
+const PROGRAM_RATIO_RULES = {
+  'BCA|MCA': {
+    BCA: 0.75,
+    MCA: 0.25
+  }
+};
+
 const DEFAULT_MENTORS = [
   ['M Madhina', 'B.Com', 'MBA'],
   ['Jennifer Rebecca Paul', 'B.Com', 'MBA'],
@@ -30,6 +38,7 @@ let studentCounter = 0;
 
 function toast(msg, type = 'info') {
   const container = document.getElementById('toast-container');
+
   if (!container) {
     alert(msg);
     return;
@@ -39,6 +48,7 @@ function toast(msg, type = 'info') {
   div.className = `toast ${type}`;
   div.innerHTML = `<span>${msg}</span>`;
   container.appendChild(div);
+
   setTimeout(() => div.remove(), 3000);
 }
 
@@ -78,7 +88,12 @@ function normalizeProgram(value) {
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
+  if (
+    val === 'full' ||
+    val === 'full payment' ||
+    val === 'fullpayment' ||
+    val === 'fu'
+  ) {
     return 'Full Payment';
   }
 
@@ -96,8 +111,10 @@ function normalizeSalesType(value) {
 
 function getPaymentKey(paymentCategory) {
   const value = normalizePaymentCategory(paymentCategory);
+
   if (value === 'Full Payment') return 'fullPayment';
   if (value === 'Semester') return 'semester';
+
   return 'annual';
 }
 
@@ -110,6 +127,30 @@ function pct(part, total) {
   return ((part / total) * 100).toFixed(2) + '%';
 }
 
+function getMentorProgramKey(mentor) {
+  return mentor.programs
+    .map(p => normalizeProgram(p))
+    .sort()
+    .join('|');
+}
+
+function getProgramRatioTarget(mentor, program) {
+  const key = getMentorProgramKey(mentor);
+  const rule = PROGRAM_RATIO_RULES[key];
+
+  if (!rule) return null;
+
+  const ratio = rule[program];
+
+  if (ratio === undefined) return null;
+
+  return mentor.capacity * ratio;
+}
+
+/* =====================================================
+   TABS
+===================================================== */
+
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchToTab(btn.dataset.tab));
@@ -117,8 +158,13 @@ function initTabs() {
 }
 
 function switchToTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
 
   const btn = document.querySelector(`[data-tab="${tabName}"]`);
   const tab = document.getElementById(`tab-${tabName}`);
@@ -133,7 +179,10 @@ function switchToTab(tabName) {
 
 function initMentors() {
   const btn = document.getElementById('add-mentor-btn');
-  if (btn) btn.addEventListener('click', addMentor);
+
+  if (btn) {
+    btn.addEventListener('click', addMentor);
+  }
 
   loadDefaultMentors();
 }
@@ -150,7 +199,10 @@ function loadDefaultMentors() {
       id: 'M' + (++mentorCounter),
       name: row[0],
       capacity: DEFAULT_MENTOR_CAPACITY,
-      programs: [normalizeProgram(row[1]), normalizeProgram(row[2])].filter(Boolean)
+      programs: [
+        normalizeProgram(row[1]),
+        normalizeProgram(row[2])
+      ].filter(Boolean)
     };
 
     STATE.mentors.push(mentor);
@@ -246,11 +298,14 @@ function initStudents() {
   if (addBtn) addBtn.addEventListener('click', () => addStudentRow());
   if (clearBtn) clearBtn.addEventListener('click', clearStudents);
 
-  for (let i = 0; i < 3; i++) addStudentRow();
+  for (let i = 0; i < 3; i++) {
+    addStudentRow();
+  }
 }
 
 function addStudentRow(data = {}) {
   const tbody = document.getElementById('students-tbody');
+
   if (!tbody) return;
 
   const student = {
@@ -400,11 +455,13 @@ function parseCSVLine(line) {
   }
 
   result.push(current.trim());
+
   return result.map(c => c.replace(/^"|"$/g, '').trim());
 }
 
 function handleCSVImport(e) {
   const file = e.target.files[0];
+
   if (!file) return;
 
   const reader = new FileReader();
@@ -418,7 +475,10 @@ function handleCSVImport(e) {
     lines.forEach((line, index) => {
       const cols = parseCSVLine(line);
 
-      if (index === 0 && cols.join(',').toLowerCase().includes('roll')) return;
+      if (index === 0 && cols.join(',').toLowerCase().includes('roll')) {
+        return;
+      }
+
       if (!cols[0]) return;
 
       addStudentRow({
@@ -437,6 +497,7 @@ function handleCSVImport(e) {
   };
 
   reader.onerror = () => toast('Unable to read CSV file', 'error');
+
   reader.readAsText(file);
 }
 
@@ -446,6 +507,7 @@ function handleCSVImport(e) {
 
 function initAllocation() {
   const btn = document.getElementById('run-allocation-btn');
+
   if (!btn) return;
 
   btn.addEventListener('click', runAllocation);
@@ -512,7 +574,17 @@ function getEligibleMentorsForStudent(validMentors, counts, student) {
   return validMentors.filter(m => {
     const programAllowed = mentorCanTakeProgram(m, program);
     const hasCapacity = counts[m.id].total < m.capacity;
-    return programAllowed && hasCapacity;
+
+    if (!programAllowed || !hasCapacity) return false;
+
+    const ratioTarget = getProgramRatioTarget(m, program);
+
+    if (ratioTarget !== null) {
+      const programCount = ensureProgramCount(counts[m.id], program);
+      return programCount.total < ratioTarget;
+    }
+
+    return true;
   });
 }
 
@@ -560,6 +632,7 @@ function runAllocation() {
   }
 
   const counts = {};
+
   validMentors.forEach(m => {
     counts[m.id] = createEmptyCount();
   });
@@ -570,7 +643,7 @@ function runAllocation() {
   const unallocated = [];
   const processedStudentIds = new Set();
 
-  // 1. Count locked existing learners first
+  /* Count locked existing learners first */
   students.forEach(student => {
     if (!student.existingMentor) return;
 
@@ -601,7 +674,7 @@ function runAllocation() {
     processedStudentIds.add(student.id);
   });
 
-  // 2. Allocate only non-locked learners based on program target gap
+  /* Allocate only non-locked learners */
   const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
   newStudents.sort((a, b) => {
@@ -629,7 +702,7 @@ function runAllocation() {
     if (!eligibleMentors.length) {
       unallocated.push({
         ...student,
-        reason: `No mentor mapped to ${program} or capacity full`
+        reason: `No mentor mapped to ${program}, ratio target reached, or capacity full`
       });
       return;
     }
@@ -641,12 +714,17 @@ function runAllocation() {
       const overallCount = counts[m.id];
       const programCount = ensureProgramCount(overallCount, program);
 
-      const target = targetInfo ? targetInfo.targetPerMentor : 0;
+      const ratioTarget = getProgramRatioTarget(m, program);
+      const target = ratioTarget !== null
+        ? ratioTarget
+        : targetInfo
+          ? targetInfo.targetPerMentor
+          : 0;
+
       const gap = target - programCount.total;
 
       const score =
         (-gap * 100000000) +
-        (programCount.total * 1000000) +
         (programCount[paymentKey] * 100000) +
         (programCount[salesKey] * 10000) +
         (overallCount.total * 1000);
@@ -686,6 +764,7 @@ function runAllocation() {
 
 function renderResults() {
   const results = STATE.lastResults;
+
   if (!results) return;
 
   const summary = document.getElementById('summary-cards');
@@ -779,6 +858,7 @@ function renderResults() {
 
 function initReset() {
   const btn = document.getElementById('reset-day-btn');
+
   if (!btn) return;
 
   btn.addEventListener('click', resetDay);
@@ -803,7 +883,9 @@ function resetDay() {
   if (unallocatedSection) unallocatedSection.style.display = 'none';
   if (unallocatedList) unallocatedList.innerHTML = '';
 
-  for (let i = 0; i < 3; i++) addStudentRow();
+  for (let i = 0; i < 3; i++) {
+    addStudentRow();
+  }
 
   switchToTab('allocate');
   toast('Student data reset completed', 'success');
@@ -815,6 +897,7 @@ function resetDay() {
 
 function initExport() {
   const btn = document.getElementById('export-results-btn');
+
   if (!btn) return;
 
   btn.addEventListener('click', exportCSV);
@@ -912,8 +995,16 @@ function exportCSV() {
 
     mentorPrograms.forEach(program => {
       const programRows = mentorRows.filter(a => a.program === program);
+
+      const ratioTarget = getProgramRatioTarget(m, program);
       const targetInfo = STATE.lastResults.programTargets?.[program];
-      const target = targetInfo ? targetInfo.targetPerMentor : 0;
+
+      const target = ratioTarget !== null
+        ? ratioTarget
+        : targetInfo
+          ? targetInfo.targetPerMentor
+          : 0;
+
       const gap = target - programRows.length;
 
       const channelRows = programRows.filter(a => a.salesType === 'Channel');
