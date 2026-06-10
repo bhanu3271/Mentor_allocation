@@ -9,6 +9,7 @@ const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 800;
 
+/* Soft ratio rules */
 const PROGRAM_RATIO_RULES = {
   'BCA|MCA': {
     BCA: 0.75,
@@ -18,6 +19,11 @@ const PROGRAM_RATIO_RULES = {
   'BBA|MBA': {
     BBA: 0.40,
     MBA: 0.60
+  },
+
+  'B.Com|MBA': {
+    'B.Com': 0.48,
+    MBA: 0.52
   }
 };
 
@@ -569,6 +575,7 @@ function getEligibleMentorsForProgram(validMentors, program) {
   return validMentors.filter(m => mentorCanTakeProgram(m, program));
 }
 
+/* Soft ratio: only capacity is hard, ratio is preference */
 function getEligibleMentorsForStudent(validMentors, counts, student) {
   const program = normalizeProgram(student.program);
 
@@ -576,16 +583,7 @@ function getEligibleMentorsForStudent(validMentors, counts, student) {
     const programAllowed = mentorCanTakeProgram(m, program);
     const hasCapacity = counts[m.id].total < m.capacity;
 
-    if (!programAllowed || !hasCapacity) return false;
-
-    const ratioTarget = getProgramRatioTarget(m, program);
-
-    if (ratioTarget !== null) {
-      const programCount = ensureProgramCount(counts[m.id], program);
-      return programCount.total < ratioTarget;
-    }
-
-    return true;
+    return programAllowed && hasCapacity;
   });
 }
 
@@ -703,7 +701,7 @@ function runAllocation() {
     if (!eligibleMentors.length) {
       unallocated.push({
         ...student,
-        reason: `No mentor mapped to ${program}, ratio target reached, or capacity full`
+        reason: `No mentor mapped to ${program} or capacity full`
       });
       return;
     }
