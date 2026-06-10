@@ -18,13 +18,10 @@ const PROGRAM_RATIO_RULES = {
 };
 
 const DEFAULT_MENTORS = [
-  ['M Madhina', 'B.Com', 'MBA'],
-  ['Jennifer Rebecca Paul', 'B.Com', 'MBA'],
-  ['Ankita Kumari', 'BBA', 'MBA'],
-  ['Nourin Alom Barbhuiya', 'BBA', 'MBA'],
-  ['Mentor 2', 'BBA', 'MBA'],
-  ['Kishan Shreyasvi Rao Kandregula', 'BCA', 'MCA'],
-  ['Siddhant Kumar Sinha', 'BCA', 'MCA']
+  ['Varsha', 'MSc in Mathematics'],
+  ['Sachin', 'MA.JMC', 'MBA'],
+  ['Mentor 3', 'MBA', 'M.Com'],
+  ['Mentor 4', 'BBA', 'MBA']
 ];
 
 const STATE = {
