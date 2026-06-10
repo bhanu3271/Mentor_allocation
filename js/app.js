@@ -9,11 +9,15 @@ const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 800;
 
-/* BCA/MCA split rule */
 const PROGRAM_RATIO_RULES = {
   'BCA|MCA': {
     BCA: 0.75,
     MCA: 0.25
+  },
+
+  'BBA|MBA': {
+    BBA: 0.40,
+    MBA: 0.60
   }
 };
 
