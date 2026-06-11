@@ -9,49 +9,10 @@ const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 800;
 
-const PROGRAM_RATIO_RULES = {
-  'BCA|MCA': { BCA: 0.75, MCA: 0.25 },
-  'BBA|MBA': { BBA: 0.40, MBA: 0.60 },
-  'B.Com|MBA': { 'B.Com': 0.48, MBA: 0.52 }
-};
-
-const PROGRAM_PAYMENT_MIX = {
-  'B.Com': {
-    Channel: { Annual: 0.26, 'Full Payment': 0.31, Semester: 0.43 },
-    Inside: { Annual: 0.34, 'Full Payment': 0.00, Semester: 0.66 }
-  },
-  BBA: {
-    Channel: { Annual: 0.28, 'Full Payment': 0.35, Semester: 0.37 },
-    Inside: { Annual: 0.24, 'Full Payment': 0.01, Semester: 0.75 }
-  },
-  BCA: {
-    Channel: { Annual: 0.26, 'Full Payment': 0.38, Semester: 0.36 },
-    Inside: { Annual: 0.32, 'Full Payment': 0.01, Semester: 0.67 }
-  },
-  'M.Com': {
-    Channel: { Annual: 0.35, 'Full Payment': 0.47, Semester: 0.18 },
-    Inside: { Annual: 0.34, 'Full Payment': 0.00, Semester: 0.66 }
-  },
-  'MA in Economics': {
-    Channel: { Annual: 0.30, 'Full Payment': 0.39, Semester: 0.30 },
-    Inside: { Annual: 0.28, 'Full Payment': 0.03, Semester: 0.69 }
-  },
-  'MA.JMC': {
-    Channel: { Annual: 0.18, 'Full Payment': 0.47, Semester: 0.35 },
-    Inside: { Annual: 0.29, 'Full Payment': 0.00, Semester: 0.71 }
-  },
-  MBA: {
-    Channel: { Annual: 0.49, 'Full Payment': 0.09, Semester: 0.42 },
-    Inside: { Annual: 0.30, 'Full Payment': 0.00, Semester: 0.70 }
-  },
-  MCA: {
-    Channel: { Annual: 0.52, 'Full Payment': 0.15, Semester: 0.34 },
-    Inside: { Annual: 0.25, 'Full Payment': 0.00, Semester: 0.75 }
-  },
-  'MSc in Mathematics': {
-    Channel: { Annual: 0.28, 'Full Payment': 0.28, Semester: 0.44 },
-    Inside: { Annual: 0.26, 'Full Payment': 0.02, Semester: 0.72 }
-  }
+const MENTOR_CAPACITY_OVERRIDES = {
+  'Sachin': 600,
+  'Grishmi Rajkumar Karande': 600,
+  'Pujith': 600
 };
 
 const DEFAULT_MENTORS = [
@@ -76,6 +37,10 @@ const STATE = {
 
 let mentorCounter = 0;
 let studentCounter = 0;
+
+function getMentorCapacity(name) {
+  return MENTOR_CAPACITY_OVERRIDES[name] || DEFAULT_MENTOR_CAPACITY;
+}
 
 function toast(msg, type = 'info') {
   const container = document.getElementById('toast-container');
@@ -129,7 +94,12 @@ function normalizeProgram(value) {
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
+  if (
+    val === 'full' ||
+    val === 'full payment' ||
+    val === 'fullpayment' ||
+    val === 'fu'
+  ) {
     return 'Full Payment';
   }
 
@@ -163,24 +133,22 @@ function pct(part, total) {
   return ((part / total) * 100).toFixed(2) + '%';
 }
 
-function getMentorProgramKey(mentor) {
-  return mentor.programs
-    .map(p => normalizeProgram(p))
-    .sort()
-    .join('|');
+function getBucketKey(program, salesType, paymentCategory) {
+  return [
+    normalizeProgram(program),
+    normalizeSalesType(salesType),
+    normalizePaymentCategory(paymentCategory)
+  ].join('|');
 }
 
-function getProgramRatioTarget(mentor, program) {
-  const key = getMentorProgramKey(mentor);
-  const rule = PROGRAM_RATIO_RULES[key];
+function getPaymentPriority(paymentCategory) {
+  const payment = normalizePaymentCategory(paymentCategory);
 
-  if (!rule) return null;
+  if (payment === 'Annual') return 3;
+  if (payment === 'Full Payment') return 3;
+  if (payment === 'Semester') return 1;
 
-  const ratio = rule[program];
-
-  if (ratio === undefined) return null;
-
-  return mentor.capacity * ratio;
+  return 1;
 }
 
 /* =====================================================
@@ -234,7 +202,7 @@ function loadDefaultMentors() {
     const mentor = {
       id: 'M' + (++mentorCounter),
       name: row[0],
-      capacity: DEFAULT_MENTOR_CAPACITY,
+      capacity: getMentorCapacity(row[0]),
       programs: [
         normalizeProgram(row[1]),
         normalizeProgram(row[2])
@@ -286,13 +254,6 @@ function renderMentor(mentor) {
     if (!Number.isFinite(value) || value < 1) {
       mentor.capacity = 1;
       capInput.value = 1;
-      return;
-    }
-
-    if (value > DEFAULT_MENTOR_CAPACITY) {
-      mentor.capacity = DEFAULT_MENTOR_CAPACITY;
-      capInput.value = DEFAULT_MENTOR_CAPACITY;
-      toast('Maximum mentor capacity is 800', 'warn');
       return;
     }
 
@@ -557,8 +518,17 @@ function createEmptyCount() {
     fullPayment: 0,
     semester: 0,
     total: 0,
+    buckets: {},
     byProgram: {}
   };
+}
+
+function ensureBucketCount(countObj, bucketKey) {
+  if (!countObj.buckets[bucketKey]) {
+    countObj.buckets[bucketKey] = 0;
+  }
+
+  return countObj.buckets[bucketKey];
 }
 
 function ensureProgramCount(countObj, program) {
@@ -569,21 +539,7 @@ function ensureProgramCount(countObj, program) {
       annual: 0,
       fullPayment: 0,
       semester: 0,
-      total: 0,
-      matrix: {
-        Channel: {
-          annual: 0,
-          fullPayment: 0,
-          semester: 0,
-          total: 0
-        },
-        Inside: {
-          annual: 0,
-          fullPayment: 0,
-          semester: 0,
-          total: 0
-        }
-      }
+      total: 0
     };
   }
 
@@ -591,23 +547,25 @@ function ensureProgramCount(countObj, program) {
 }
 
 function incrementCounts(countObj, student) {
-  const salesType = normalizeSalesType(student.salesType);
-  const salesKey = getSalesKey(salesType);
-  const paymentKey = getPaymentKey(student.paymentCategory);
   const program = normalizeProgram(student.program);
+  const salesType = normalizeSalesType(student.salesType);
+  const paymentCategory = normalizePaymentCategory(student.paymentCategory);
+
+  const salesKey = getSalesKey(salesType);
+  const paymentKey = getPaymentKey(paymentCategory);
+  const bucketKey = getBucketKey(program, salesType, paymentCategory);
 
   countObj[salesKey]++;
   countObj[paymentKey]++;
   countObj.total++;
+
+  countObj.buckets[bucketKey] = ensureBucketCount(countObj, bucketKey) + 1;
 
   const programCount = ensureProgramCount(countObj, program);
 
   programCount[salesKey]++;
   programCount[paymentKey]++;
   programCount.total++;
-
-  programCount.matrix[salesType][paymentKey]++;
-  programCount.matrix[salesType].total++;
 }
 
 function mentorCanTakeProgram(mentor, program) {
@@ -616,10 +574,6 @@ function mentorCanTakeProgram(mentor, program) {
   return mentor.programs
     .map(p => normalizeProgram(p))
     .includes(normalizedProgram);
-}
-
-function getEligibleMentorsForProgram(validMentors, program) {
-  return validMentors.filter(m => mentorCanTakeProgram(m, program));
 }
 
 function getEligibleMentorsForStudent(validMentors, counts, student) {
@@ -633,23 +587,71 @@ function getEligibleMentorsForStudent(validMentors, counts, student) {
   });
 }
 
+function buildBucketTargets(students, validMentors) {
+  const targets = {};
+
+  students.forEach(student => {
+    const program = normalizeProgram(student.program);
+    const salesType = normalizeSalesType(student.salesType);
+    const paymentCategory = normalizePaymentCategory(student.paymentCategory);
+    const bucketKey = getBucketKey(program, salesType, paymentCategory);
+
+    if (!targets[bucketKey]) {
+      const eligibleMentors = validMentors.filter(m =>
+        mentorCanTakeProgram(m, program)
+      );
+
+      const totalEligibleCapacity = eligibleMentors.reduce(
+        (sum, m) => sum + m.capacity,
+        0
+      );
+
+      targets[bucketKey] = {
+        program,
+        salesType,
+        paymentCategory,
+        total: 0,
+        eligibleMentors,
+        totalEligibleCapacity
+      };
+    }
+
+    targets[bucketKey].total++;
+  });
+
+  return targets;
+}
+
 function buildProgramTargets(students, validMentors) {
   const targets = {};
 
   PROGRAMS.forEach(program => {
     const totalProgramLearners = students.filter(s => s.program === program).length;
-    const eligibleMentors = getEligibleMentorsForProgram(validMentors, program);
+    const eligibleMentors = validMentors.filter(m => mentorCanTakeProgram(m, program));
+    const totalEligibleCapacity = eligibleMentors.reduce((sum, m) => sum + m.capacity, 0);
 
-    if (!totalProgramLearners || !eligibleMentors.length) return;
+    if (!totalProgramLearners || !eligibleMentors.length || !totalEligibleCapacity) return;
 
     targets[program] = {
       total: totalProgramLearners,
-      mentorCount: eligibleMentors.length,
-      targetPerMentor: totalProgramLearners / eligibleMentors.length
+      eligibleMentors,
+      totalEligibleCapacity
     };
   });
 
   return targets;
+}
+
+function getMentorBucketTarget(bucketTarget, mentor) {
+  if (!bucketTarget || !bucketTarget.totalEligibleCapacity) return 0;
+
+  return bucketTarget.total * mentor.capacity / bucketTarget.totalEligibleCapacity;
+}
+
+function getMentorProgramTarget(programTarget, mentor) {
+  if (!programTarget || !programTarget.totalEligibleCapacity) return 0;
+
+  return programTarget.total * mentor.capacity / programTarget.totalEligibleCapacity;
 }
 
 function runAllocation() {
@@ -682,6 +684,7 @@ function runAllocation() {
     counts[m.id] = createEmptyCount();
   });
 
+  const bucketTargets = buildBucketTargets(students, validMentors);
   const programTargets = buildProgramTargets(students, validMentors);
 
   const assigned = [];
@@ -735,9 +738,10 @@ function runAllocation() {
     const salesType = normalizeSalesType(student.salesType);
     const paymentCategory = normalizePaymentCategory(student.paymentCategory);
 
-    const salesKey = getSalesKey(salesType);
-    const paymentKey = getPaymentKey(paymentCategory);
-    const targetInfo = programTargets[program];
+    const bucketKey = getBucketKey(program, salesType, paymentCategory);
+    const bucketTarget = bucketTargets[bucketKey];
+    const programTarget = programTargets[program];
+    const paymentPriority = getPaymentPriority(paymentCategory);
 
     const eligibleMentors = getEligibleMentorsForStudent(
       validMentors,
@@ -757,44 +761,23 @@ function runAllocation() {
     let bestScore = Infinity;
 
     eligibleMentors.forEach(m => {
-      const overallCount = counts[m.id];
-      const programCount = ensureProgramCount(overallCount, program);
+      const c = counts[m.id];
 
-      const ratioTarget = getProgramRatioTarget(m, program);
-      const programTarget = ratioTarget !== null
-        ? ratioTarget
-        : targetInfo
-          ? targetInfo.targetPerMentor
-          : 0;
+      const mentorBucketTarget = getMentorBucketTarget(bucketTarget, m);
+      const mentorProgramTarget = getMentorProgramTarget(programTarget, m);
 
-      const programGap = programTarget - programCount.total;
+      const currentBucket = ensureBucketCount(c, bucketKey);
+      const currentProgram = ensureProgramCount(c, program).total;
 
-      const programTotalRows = students.filter(s => s.program === program);
-      const salesTotalRows = programTotalRows.filter(s => s.salesType === salesType);
-
-      const salesRatio =
-        programTotalRows.length > 0
-          ? salesTotalRows.length / programTotalRows.length
-          : 0.5;
-
-      const salesTarget = programTarget * salesRatio;
-
-      const programMix =
-        PROGRAM_PAYMENT_MIX[program]?.[salesType]?.[paymentCategory] ?? 0;
-
-      const exactPaymentTarget = salesTarget * programMix;
-      const salesGap = salesTarget - programCount[salesKey];
-
-      const exactCurrent =
-        programCount.matrix[salesType]?.[paymentKey] || 0;
-
-      const exactPaymentGap = exactPaymentTarget - exactCurrent;
+      const bucketGap = mentorBucketTarget - currentBucket;
+      const programGap = mentorProgramTarget - currentProgram;
+      const capacityUsage = c.total / m.capacity;
 
       const score =
-        (-programGap * 1000000000) +
-        (-exactPaymentGap * 10000000) +
-        (-salesGap * 100000) +
-        (overallCount.total * 1000);
+        (-bucketGap * 100000000 * paymentPriority) +
+        (-programGap * 1000000) +
+        (capacityUsage * 100000) +
+        (c.total * 1000);
 
       if (score < bestScore) {
         bestScore = score;
@@ -816,6 +799,7 @@ function runAllocation() {
     unallocated,
     counts,
     mentors: validMentors,
+    bucketTargets,
     programTargets
   };
 
@@ -1033,18 +1017,12 @@ function exportCSV() {
     'Program % of Overall Allocation',
     'Channel Total',
     'Channel Annual',
-    'Channel Annual %',
     'Channel Full Payment',
-    'Channel Full Payment %',
     'Channel Semester',
-    'Channel Semester %',
     'Inside Total',
     'Inside Annual',
-    'Inside Annual %',
     'Inside Full Payment',
-    'Inside Full Payment %',
     'Inside Semester',
-    'Inside Semester %',
     'Locked Learners',
     'Newly Allocated Learners',
     'Capacity',
@@ -1082,18 +1060,12 @@ function exportCSV() {
         pct(programRows.length, totalAllocated),
         channelRows.length,
         channelAnnual,
-        pct(channelAnnual, channelRows.length),
         channelFull,
-        pct(channelFull, channelRows.length),
         channelSemester,
-        pct(channelSemester, channelRows.length),
         insideRows.length,
         insideAnnual,
-        pct(insideAnnual, insideRows.length),
         insideFull,
-        pct(insideFull, insideRows.length),
         insideSemester,
-        pct(insideSemester, insideRows.length),
         lockedCount,
         newCount,
         m.capacity,
