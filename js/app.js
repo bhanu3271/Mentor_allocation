@@ -9,7 +9,7 @@ const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 800;
 
-/* Soft ratio rules */
+/* Soft program ratio rules */
 const PROGRAM_RATIO_RULES = {
   'BCA|MCA': {
     BCA: 0.75,
@@ -24,6 +24,126 @@ const PROGRAM_RATIO_RULES = {
   'B.Com|MBA': {
     'B.Com': 0.48,
     MBA: 0.52
+  }
+};
+
+/* Program + Sales Type + Payment Category mix */
+const PROGRAM_PAYMENT_MIX = {
+  'B.Com': {
+    Channel: {
+      Annual: 0.26,
+      'Full Payment': 0.31,
+      Semester: 0.43
+    },
+    Inside: {
+      Annual: 0.34,
+      'Full Payment': 0.00,
+      Semester: 0.66
+    }
+  },
+
+  BBA: {
+    Channel: {
+      Annual: 0.28,
+      'Full Payment': 0.35,
+      Semester: 0.37
+    },
+    Inside: {
+      Annual: 0.24,
+      'Full Payment': 0.01,
+      Semester: 0.75
+    }
+  },
+
+  BCA: {
+    Channel: {
+      Annual: 0.26,
+      'Full Payment': 0.38,
+      Semester: 0.36
+    },
+    Inside: {
+      Annual: 0.32,
+      'Full Payment': 0.01,
+      Semester: 0.67
+    }
+  },
+
+  'M.Com': {
+    Channel: {
+      Annual: 0.35,
+      'Full Payment': 0.47,
+      Semester: 0.18
+    },
+    Inside: {
+      Annual: 0.34,
+      'Full Payment': 0.00,
+      Semester: 0.66
+    }
+  },
+
+  'MA in Economics': {
+    Channel: {
+      Annual: 0.30,
+      'Full Payment': 0.39,
+      Semester: 0.30
+    },
+    Inside: {
+      Annual: 0.28,
+      'Full Payment': 0.03,
+      Semester: 0.69
+    }
+  },
+
+  'MA.JMC': {
+    Channel: {
+      Annual: 0.18,
+      'Full Payment': 0.47,
+      Semester: 0.35
+    },
+    Inside: {
+      Annual: 0.29,
+      'Full Payment': 0.00,
+      Semester: 0.71
+    }
+  },
+
+  MBA: {
+    Channel: {
+      Annual: 0.49,
+      'Full Payment': 0.09,
+      Semester: 0.42
+    },
+    Inside: {
+      Annual: 0.30,
+      'Full Payment': 0.00,
+      Semester: 0.70
+    }
+  },
+
+  MCA: {
+    Channel: {
+      Annual: 0.52,
+      'Full Payment': 0.15,
+      Semester: 0.34
+    },
+    Inside: {
+      Annual: 0.25,
+      'Full Payment': 0.00,
+      Semester: 0.75
+    }
+  },
+
+  'MSc in Mathematics': {
+    Channel: {
+      Annual: 0.28,
+      'Full Payment': 0.28,
+      Semester: 0.44
+    },
+    Inside: {
+      Annual: 0.26,
+      'Full Payment': 0.02,
+      Semester: 0.72
+    }
   }
 };
 
@@ -582,7 +702,7 @@ function getEligibleMentorsForProgram(validMentors, program) {
   return validMentors.filter(m => mentorCanTakeProgram(m, program));
 }
 
-/* Soft ratio: only capacity is hard, ratio is preference */
+/* Soft ratio: only capacity is hard */
 function getEligibleMentorsForStudent(validMentors, counts, student) {
   const program = normalizeProgram(student.program);
 
@@ -687,16 +807,19 @@ function runAllocation() {
     const programCompare = a.program.localeCompare(b.program);
     if (programCompare !== 0) return programCompare;
 
-    const paymentCompare = a.paymentCategory.localeCompare(b.paymentCategory);
-    if (paymentCompare !== 0) return paymentCompare;
+    const salesCompare = a.salesType.localeCompare(b.salesType);
+    if (salesCompare !== 0) return salesCompare;
 
-    return a.salesType.localeCompare(b.salesType);
+    return a.paymentCategory.localeCompare(b.paymentCategory);
   });
 
   newStudents.forEach(student => {
     const program = normalizeProgram(student.program);
-    const salesKey = getSalesKey(student.salesType);
-    const paymentKey = getPaymentKey(student.paymentCategory);
+    const salesType = normalizeSalesType(student.salesType);
+    const paymentCategory = normalizePaymentCategory(student.paymentCategory);
+
+    const salesKey = getSalesKey(salesType);
+    const paymentKey = getPaymentKey(paymentCategory);
     const targetInfo = programTargets[program];
 
     const eligibleMentors = getEligibleMentorsForStudent(
@@ -721,18 +844,26 @@ function runAllocation() {
       const programCount = ensureProgramCount(overallCount, program);
 
       const ratioTarget = getProgramRatioTarget(m, program);
-      const target = ratioTarget !== null
+      const programTarget = ratioTarget !== null
         ? ratioTarget
         : targetInfo
           ? targetInfo.targetPerMentor
           : 0;
 
-      const gap = target - programCount.total;
+      const programGap = programTarget - programCount.total;
+
+      const programMix = PROGRAM_PAYMENT_MIX[program]?.[salesType]?.[paymentCategory] ?? 0;
+
+      const salesTotalTarget = programTarget / 2;
+      const paymentTarget = salesTotalTarget * programMix;
+
+      const salesGap = salesTotalTarget - programCount[salesKey];
+      const paymentGap = paymentTarget - programCount[paymentKey];
 
       const score =
-        (-gap * 100000000) +
-        (programCount[paymentKey] * 100000) +
-        (programCount[salesKey] * 10000) +
+        (-programGap * 100000000) +
+        (-salesGap * 1000000) +
+        (-paymentGap * 10000) +
         (overallCount.total * 1000);
 
       if (score < bestScore) {
@@ -967,9 +1098,7 @@ function exportCSV() {
     'Assigned Learners',
     'Overall Allocation %',
     'Program',
-    'Program Target',
     'Program Learners Assigned',
-    'Program Gap',
     'Program % within Mentor',
     'Program % of Overall Allocation',
     'Channel Total',
@@ -1002,17 +1131,6 @@ function exportCSV() {
     mentorPrograms.forEach(program => {
       const programRows = mentorRows.filter(a => a.program === program);
 
-      const ratioTarget = getProgramRatioTarget(m, program);
-      const targetInfo = STATE.lastResults.programTargets?.[program];
-
-      const target = ratioTarget !== null
-        ? ratioTarget
-        : targetInfo
-          ? targetInfo.targetPerMentor
-          : 0;
-
-      const gap = target - programRows.length;
-
       const channelRows = programRows.filter(a => a.salesType === 'Channel');
       const insideRows = programRows.filter(a => a.salesType === 'Inside');
 
@@ -1029,9 +1147,7 @@ function exportCSV() {
         mentorTotal,
         pct(mentorTotal, totalAllocated),
         program,
-        Number(target.toFixed(2)),
         programRows.length,
-        Number(gap.toFixed(2)),
         pct(programRows.length, mentorTotal),
         pct(programRows.length, totalAllocated),
         channelRows.length,
