@@ -9,141 +9,48 @@ const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 800;
 
-/* Soft program ratio rules */
 const PROGRAM_RATIO_RULES = {
-  'BCA|MCA': {
-    BCA: 0.75,
-    MCA: 0.25
-  },
-
-  'BBA|MBA': {
-    BBA: 0.40,
-    MBA: 0.60
-  },
-
-  'B.Com|MBA': {
-    'B.Com': 0.48,
-    MBA: 0.52
-  }
+  'BCA|MCA': { BCA: 0.75, MCA: 0.25 },
+  'BBA|MBA': { BBA: 0.40, MBA: 0.60 },
+  'B.Com|MBA': { 'B.Com': 0.48, MBA: 0.52 }
 };
 
-/* Program + Sales Type + Payment Category mix */
 const PROGRAM_PAYMENT_MIX = {
   'B.Com': {
-    Channel: {
-      Annual: 0.26,
-      'Full Payment': 0.31,
-      Semester: 0.43
-    },
-    Inside: {
-      Annual: 0.34,
-      'Full Payment': 0.00,
-      Semester: 0.66
-    }
+    Channel: { Annual: 0.26, 'Full Payment': 0.31, Semester: 0.43 },
+    Inside: { Annual: 0.34, 'Full Payment': 0.00, Semester: 0.66 }
   },
-
   BBA: {
-    Channel: {
-      Annual: 0.28,
-      'Full Payment': 0.35,
-      Semester: 0.37
-    },
-    Inside: {
-      Annual: 0.24,
-      'Full Payment': 0.01,
-      Semester: 0.75
-    }
+    Channel: { Annual: 0.28, 'Full Payment': 0.35, Semester: 0.37 },
+    Inside: { Annual: 0.24, 'Full Payment': 0.01, Semester: 0.75 }
   },
-
   BCA: {
-    Channel: {
-      Annual: 0.26,
-      'Full Payment': 0.38,
-      Semester: 0.36
-    },
-    Inside: {
-      Annual: 0.32,
-      'Full Payment': 0.01,
-      Semester: 0.67
-    }
+    Channel: { Annual: 0.26, 'Full Payment': 0.38, Semester: 0.36 },
+    Inside: { Annual: 0.32, 'Full Payment': 0.01, Semester: 0.67 }
   },
-
   'M.Com': {
-    Channel: {
-      Annual: 0.35,
-      'Full Payment': 0.47,
-      Semester: 0.18
-    },
-    Inside: {
-      Annual: 0.34,
-      'Full Payment': 0.00,
-      Semester: 0.66
-    }
+    Channel: { Annual: 0.35, 'Full Payment': 0.47, Semester: 0.18 },
+    Inside: { Annual: 0.34, 'Full Payment': 0.00, Semester: 0.66 }
   },
-
   'MA in Economics': {
-    Channel: {
-      Annual: 0.30,
-      'Full Payment': 0.39,
-      Semester: 0.30
-    },
-    Inside: {
-      Annual: 0.28,
-      'Full Payment': 0.03,
-      Semester: 0.69
-    }
+    Channel: { Annual: 0.30, 'Full Payment': 0.39, Semester: 0.30 },
+    Inside: { Annual: 0.28, 'Full Payment': 0.03, Semester: 0.69 }
   },
-
   'MA.JMC': {
-    Channel: {
-      Annual: 0.18,
-      'Full Payment': 0.47,
-      Semester: 0.35
-    },
-    Inside: {
-      Annual: 0.29,
-      'Full Payment': 0.00,
-      Semester: 0.71
-    }
+    Channel: { Annual: 0.18, 'Full Payment': 0.47, Semester: 0.35 },
+    Inside: { Annual: 0.29, 'Full Payment': 0.00, Semester: 0.71 }
   },
-
   MBA: {
-    Channel: {
-      Annual: 0.49,
-      'Full Payment': 0.09,
-      Semester: 0.42
-    },
-    Inside: {
-      Annual: 0.30,
-      'Full Payment': 0.00,
-      Semester: 0.70
-    }
+    Channel: { Annual: 0.49, 'Full Payment': 0.09, Semester: 0.42 },
+    Inside: { Annual: 0.30, 'Full Payment': 0.00, Semester: 0.70 }
   },
-
   MCA: {
-    Channel: {
-      Annual: 0.52,
-      'Full Payment': 0.15,
-      Semester: 0.34
-    },
-    Inside: {
-      Annual: 0.25,
-      'Full Payment': 0.00,
-      Semester: 0.75
-    }
+    Channel: { Annual: 0.52, 'Full Payment': 0.15, Semester: 0.34 },
+    Inside: { Annual: 0.25, 'Full Payment': 0.00, Semester: 0.75 }
   },
-
   'MSc in Mathematics': {
-    Channel: {
-      Annual: 0.28,
-      'Full Payment': 0.28,
-      Semester: 0.44
-    },
-    Inside: {
-      Annual: 0.26,
-      'Full Payment': 0.02,
-      Semester: 0.72
-    }
+    Channel: { Annual: 0.28, 'Full Payment': 0.28, Semester: 0.44 },
+    Inside: { Annual: 0.26, 'Full Payment': 0.02, Semester: 0.72 }
   }
 };
 
@@ -222,12 +129,7 @@ function normalizeProgram(value) {
 function normalizePaymentCategory(value) {
   const val = normalizeLower(value);
 
-  if (
-    val === 'full' ||
-    val === 'full payment' ||
-    val === 'fullpayment' ||
-    val === 'fu'
-  ) {
+  if (val === 'full' || val === 'full payment' || val === 'fullpayment' || val === 'fu') {
     return 'Full Payment';
   }
 
@@ -667,7 +569,21 @@ function ensureProgramCount(countObj, program) {
       annual: 0,
       fullPayment: 0,
       semester: 0,
-      total: 0
+      total: 0,
+      matrix: {
+        Channel: {
+          annual: 0,
+          fullPayment: 0,
+          semester: 0,
+          total: 0
+        },
+        Inside: {
+          annual: 0,
+          fullPayment: 0,
+          semester: 0,
+          total: 0
+        }
+      }
     };
   }
 
@@ -675,7 +591,8 @@ function ensureProgramCount(countObj, program) {
 }
 
 function incrementCounts(countObj, student) {
-  const salesKey = getSalesKey(student.salesType);
+  const salesType = normalizeSalesType(student.salesType);
+  const salesKey = getSalesKey(salesType);
   const paymentKey = getPaymentKey(student.paymentCategory);
   const program = normalizeProgram(student.program);
 
@@ -688,6 +605,9 @@ function incrementCounts(countObj, student) {
   programCount[salesKey]++;
   programCount[paymentKey]++;
   programCount.total++;
+
+  programCount.matrix[salesType][paymentKey]++;
+  programCount.matrix[salesType].total++;
 }
 
 function mentorCanTakeProgram(mentor, program) {
@@ -702,7 +622,6 @@ function getEligibleMentorsForProgram(validMentors, program) {
   return validMentors.filter(m => mentorCanTakeProgram(m, program));
 }
 
-/* Soft ratio: only capacity is hard */
 function getEligibleMentorsForStudent(validMentors, counts, student) {
   const program = normalizeProgram(student.program);
 
@@ -769,7 +688,6 @@ function runAllocation() {
   const unallocated = [];
   const processedStudentIds = new Set();
 
-  /* Count locked existing learners first */
   students.forEach(student => {
     if (!student.existingMentor) return;
 
@@ -800,7 +718,6 @@ function runAllocation() {
     processedStudentIds.add(student.id);
   });
 
-  /* Allocate only non-locked learners */
   const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
   newStudents.sort((a, b) => {
@@ -852,18 +769,31 @@ function runAllocation() {
 
       const programGap = programTarget - programCount.total;
 
-      const programMix = PROGRAM_PAYMENT_MIX[program]?.[salesType]?.[paymentCategory] ?? 0;
+      const programTotalRows = students.filter(s => s.program === program);
+      const salesTotalRows = programTotalRows.filter(s => s.salesType === salesType);
 
-      const salesTotalTarget = programTarget / 2;
-      const paymentTarget = salesTotalTarget * programMix;
+      const salesRatio =
+        programTotalRows.length > 0
+          ? salesTotalRows.length / programTotalRows.length
+          : 0.5;
 
-      const salesGap = salesTotalTarget - programCount[salesKey];
-      const paymentGap = paymentTarget - programCount[paymentKey];
+      const salesTarget = programTarget * salesRatio;
+
+      const programMix =
+        PROGRAM_PAYMENT_MIX[program]?.[salesType]?.[paymentCategory] ?? 0;
+
+      const exactPaymentTarget = salesTarget * programMix;
+      const salesGap = salesTarget - programCount[salesKey];
+
+      const exactCurrent =
+        programCount.matrix[salesType]?.[paymentKey] || 0;
+
+      const exactPaymentGap = exactPaymentTarget - exactCurrent;
 
       const score =
-        (-programGap * 100000000) +
-        (-salesGap * 1000000) +
-        (-paymentGap * 10000) +
+        (-programGap * 1000000000) +
+        (-exactPaymentGap * 10000000) +
+        (-salesGap * 100000) +
         (overallCount.total * 1000);
 
       if (score < bestScore) {
