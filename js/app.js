@@ -7,6 +7,7 @@ const PROGRAMS = [
 
 const PAYMENT_CATEGORIES = ['Annual', 'Full Payment', 'Semester'];
 const SALES_TYPES = ['Channel', 'Inside'];
+
 const DEFAULT_MENTOR_CAPACITY = 800;
 
 const MENTOR_CAPACITY_OVERRIDES = {
@@ -26,8 +27,42 @@ const DEFAULT_MENTORS = [
   ['Nourin Alom Barbhuiya', 'BBA', 'MBA'],
   ['M Madhina', 'B.Com', 'MBA'],
   ['Siddhant Kumar Sinha', 'BCA', 'MCA'],
-  ['Pujith', 'MA in Economics', 'MBA']
+  ['Pujith', 'MA in Economics', 'MBA'],
+  ['Bhanu', 'BCA', 'MCA']
 ];
+
+/* Program ratio rules */
+const PROGRAM_RATIO_RULES = {
+  'BCA|MCA': {
+    BCA: 0.75,
+    MCA: 0.25
+  },
+
+  'BBA|MBA': {
+    MBA: 0.60,
+    BBA: 0.40
+  },
+
+  'B.Com|MBA': {
+    MBA: 0.55,
+    'B.Com': 0.45
+  },
+
+  'MA.JMC|MBA': {
+    'MA.JMC': 1,
+    MBA: 0
+  },
+
+  'M.Com|MBA': {
+    'M.Com': 1,
+    MBA: 0
+  },
+
+  'MA in Economics|MBA': {
+    'MA in Economics': 1,
+    MBA: 0
+  }
+};
 
 const STATE = {
   mentors: [],
@@ -141,13 +176,32 @@ function getBucketKey(program, salesType, paymentCategory) {
   ].join('|');
 }
 
+function getMentorProgramKey(mentor) {
+  return mentor.programs
+    .map(p => normalizeProgram(p))
+    .sort()
+    .join('|');
+}
+
+function getProgramRatioTarget(mentor, program) {
+  const key = getMentorProgramKey(mentor);
+  const rule = PROGRAM_RATIO_RULES[key];
+
+  if (!rule) return null;
+
+  const normalizedProgram = normalizeProgram(program);
+  const ratio = rule[normalizedProgram];
+
+  if (ratio === undefined) return null;
+
+  return mentor.capacity * ratio;
+}
+
 function getPaymentPriority(paymentCategory) {
   const payment = normalizePaymentCategory(paymentCategory);
 
   if (payment === 'Annual') return 3;
   if (payment === 'Full Payment') return 3;
-  if (payment === 'Semester') return 1;
-
   return 1;
 }
 
@@ -575,7 +629,8 @@ function incrementCounts(countObj, student) {
   countObj[paymentKey]++;
   countObj.total++;
 
-  countObj.buckets[bucketKey] = ensureBucketCount(countObj, bucketKey) + 1;
+  countObj.buckets[bucketKey] =
+    ensureBucketCount(countObj, bucketKey) + 1;
 
   const programCount = ensureProgramCount(countObj, program);
 
@@ -642,11 +697,18 @@ function buildProgramTargets(students, validMentors) {
   const targets = {};
 
   PROGRAMS.forEach(program => {
-    const totalProgramLearners = students.filter(s => s.program === program).length;
-    const eligibleMentors = validMentors.filter(m => mentorCanTakeProgram(m, program));
-    const totalEligibleCapacity = eligibleMentors.reduce((sum, m) => sum + m.capacity, 0);
+    const totalProgramLearners =
+      students.filter(s => s.program === program).length;
 
-    if (!totalProgramLearners || !eligibleMentors.length || !totalEligibleCapacity) return;
+    const eligibleMentors =
+      validMentors.filter(m => mentorCanTakeProgram(m, program));
+
+    const totalEligibleCapacity =
+      eligibleMentors.reduce((sum, m) => sum + m.capacity, 0);
+
+    if (!totalProgramLearners || !eligibleMentors.length || !totalEligibleCapacity) {
+      return;
+    }
 
     targets[program] = {
       total: totalProgramLearners,
@@ -664,8 +726,16 @@ function getMentorBucketTarget(bucketTarget, mentor) {
   return bucketTarget.total * mentor.capacity / bucketTarget.totalEligibleCapacity;
 }
 
-function getMentorProgramTarget(programTarget, mentor) {
-  if (!programTarget || !programTarget.totalEligibleCapacity) return 0;
+function getMentorProgramTarget(programTarget, mentor, program) {
+  const ratioTarget = getProgramRatioTarget(mentor, program);
+
+  if (ratioTarget !== null) {
+    return ratioTarget;
+  }
+
+  if (!programTarget || !programTarget.totalEligibleCapacity) {
+    return 0;
+  }
 
   return programTarget.total * mentor.capacity / programTarget.totalEligibleCapacity;
 }
@@ -780,19 +850,39 @@ function runAllocation() {
     eligibleMentors.forEach(m => {
       const c = counts[m.id];
 
-      const mentorBucketTarget = getMentorBucketTarget(bucketTarget, m);
-      const mentorProgramTarget = getMentorProgramTarget(programTarget, m);
+      const mentorBucketTarget =
+        getMentorBucketTarget(bucketTarget, m);
 
-      const currentBucket = ensureBucketCount(c, bucketKey);
-      const currentProgram = ensureProgramCount(c, program).total;
+      const mentorProgramTarget =
+        getMentorProgramTarget(programTarget, m, program);
 
-      const bucketGap = mentorBucketTarget - currentBucket;
-      const programGap = mentorProgramTarget - currentProgram;
-      const capacityUsage = c.total / m.capacity;
+      const currentBucket =
+        ensureBucketCount(c, bucketKey);
+
+      const currentProgram =
+        ensureProgramCount(c, program).total;
+
+      const bucketGap =
+        mentorBucketTarget - currentBucket;
+
+      const programGap =
+        mentorProgramTarget - currentProgram;
+
+      const capacityUsage =
+        c.total / m.capacity;
+
+      const ratioTarget =
+        getProgramRatioTarget(m, program);
+
+      const ratioPenalty =
+        ratioTarget !== null && currentProgram >= ratioTarget
+          ? 1000000000
+          : 0;
 
       const score =
-        (-bucketGap * 100000000 * paymentPriority) +
-        (-programGap * 1000000) +
+        ratioPenalty +
+        (-programGap * 100000000) +
+        (-bucketGap * 10000000 * paymentPriority) +
         (capacityUsage * 100000) +
         (c.total * 1000);
 
@@ -863,7 +953,8 @@ function renderResults() {
 
   results.mentors.forEach(m => {
     const c = results.counts[m.id];
-    const mentorStudents = results.assigned.filter(a => a.mentorName === m.name);
+    const mentorStudents =
+      results.assigned.filter(a => a.mentorName === m.name);
 
     const div = document.createElement('div');
     div.className = 'mentor-result-card';
@@ -1047,26 +1138,51 @@ function exportCSV() {
   ]];
 
   mentors.forEach(m => {
-    const mentorRows = assigned.filter(a => a.mentorName === m.name);
+    const mentorRows =
+      assigned.filter(a => a.mentorName === m.name);
+
     const mentorTotal = mentorRows.length;
-    const mentorPrograms = [...new Set([...m.programs, ...mentorRows.map(a => a.program)])];
+
+    const mentorPrograms = [
+      ...new Set([
+        ...m.programs,
+        ...mentorRows.map(a => a.program)
+      ])
+    ];
 
     mentorPrograms.forEach(program => {
-      const programRows = mentorRows.filter(a => a.program === program);
+      const programRows =
+        mentorRows.filter(a => a.program === program);
 
-      const lockedCount = programRows.filter(a => a.locked).length;
-      const newCount = programRows.filter(a => !a.locked).length;
+      const lockedCount =
+        programRows.filter(a => a.locked).length;
 
-      const channelRows = programRows.filter(a => a.salesType === 'Channel');
-      const insideRows = programRows.filter(a => a.salesType === 'Inside');
+      const newCount =
+        programRows.filter(a => !a.locked).length;
 
-      const channelAnnual = channelRows.filter(a => a.paymentCategory === 'Annual').length;
-      const channelFull = channelRows.filter(a => a.paymentCategory === 'Full Payment').length;
-      const channelSemester = channelRows.filter(a => a.paymentCategory === 'Semester').length;
+      const channelRows =
+        programRows.filter(a => a.salesType === 'Channel');
 
-      const insideAnnual = insideRows.filter(a => a.paymentCategory === 'Annual').length;
-      const insideFull = insideRows.filter(a => a.paymentCategory === 'Full Payment').length;
-      const insideSemester = insideRows.filter(a => a.paymentCategory === 'Semester').length;
+      const insideRows =
+        programRows.filter(a => a.salesType === 'Inside');
+
+      const channelAnnual =
+        channelRows.filter(a => a.paymentCategory === 'Annual').length;
+
+      const channelFull =
+        channelRows.filter(a => a.paymentCategory === 'Full Payment').length;
+
+      const channelSemester =
+        channelRows.filter(a => a.paymentCategory === 'Semester').length;
+
+      const insideAnnual =
+        insideRows.filter(a => a.paymentCategory === 'Annual').length;
+
+      const insideFull =
+        insideRows.filter(a => a.paymentCategory === 'Full Payment').length;
+
+      const insideSemester =
+        insideRows.filter(a => a.paymentCategory === 'Semester').length;
 
       sheet2.push([
         m.name,
