@@ -151,6 +151,22 @@ function getPaymentPriority(paymentCategory) {
   return 1;
 }
 
+function findMentorByExistingName(validMentors, existingMentor) {
+  const existingName = normalizeLower(existingMentor);
+
+  if (!existingName) return null;
+
+  return validMentors.find(m => {
+    const mentorName = normalizeLower(m.name);
+
+    return (
+      mentorName === existingName ||
+      mentorName.includes(existingName) ||
+      existingName.includes(mentorName)
+    );
+  });
+}
+
 /* =====================================================
    TABS
 ===================================================== */
@@ -694,8 +710,9 @@ function runAllocation() {
   students.forEach(student => {
     if (!student.existingMentor) return;
 
-    const mentor = validMentors.find(m =>
-      normalizeLower(m.name) === normalizeLower(student.existingMentor)
+    const mentor = findMentorByExistingName(
+      validMentors,
+      student.existingMentor
     );
 
     if (!mentor) {
@@ -1032,12 +1049,13 @@ function exportCSV() {
   mentors.forEach(m => {
     const mentorRows = assigned.filter(a => a.mentorName === m.name);
     const mentorTotal = mentorRows.length;
-    const lockedCount = mentorRows.filter(a => a.locked).length;
-    const newCount = mentorRows.filter(a => !a.locked).length;
     const mentorPrograms = [...new Set([...m.programs, ...mentorRows.map(a => a.program)])];
 
     mentorPrograms.forEach(program => {
       const programRows = mentorRows.filter(a => a.program === program);
+
+      const lockedCount = programRows.filter(a => a.locked).length;
+      const newCount = programRows.filter(a => !a.locked).length;
 
       const channelRows = programRows.filter(a => a.salesType === 'Channel');
       const insideRows = programRows.filter(a => a.salesType === 'Inside');
