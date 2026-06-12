@@ -1,7 +1,5 @@
 'use strict';
 
-/* Updated Mentor Allocator: soft program ratios + capacity-weighted bucket balancing */
-
 const PROGRAMS = [
   'BBA', 'BCA', 'B.Com', 'MA.JMC', 'MBA',
   'MCA', 'M.Com', 'MA in Economics', 'MSc in Mathematics'
@@ -575,16 +573,6 @@ function getEligibleMentorsForStudent(validMentors, counts, student) {
   });
 }
 
-function getMentorProgramWeight(mentor, program) {
-  const ratioTarget = getProgramRatioTarget(mentor, program);
-
-  if (ratioTarget !== null && ratioTarget > 0) {
-    return ratioTarget;
-  }
-
-  return mentor.capacity;
-}
-
 function buildBucketTargets(students, validMentors) {
   const targets = {};
 
@@ -597,18 +585,10 @@ function buildBucketTargets(students, validMentors) {
     if (!targets[bucketKey]) {
       const eligibleMentors = validMentors.filter(m => mentorCanTakeProgram(m, program));
 
-      let totalEligibleCapacity = eligibleMentors.reduce(
-        (sum, m) => sum + getMentorProgramWeight(m, program),
+      const totalEligibleCapacity = eligibleMentors.reduce(
+        (sum, m) => sum + m.capacity,
         0
       );
-
-      // Fallback safety: if all ratio weights are zero, use normal capacity.
-      if (!totalEligibleCapacity) {
-        totalEligibleCapacity = eligibleMentors.reduce(
-          (sum, m) => sum + m.capacity,
-          0
-        );
-      }
 
       targets[bucketKey] = {
         program,
@@ -649,9 +629,7 @@ function buildProgramTargets(students, validMentors) {
 function getMentorBucketTarget(bucketTarget, mentor) {
   if (!bucketTarget || !bucketTarget.totalEligibleCapacity) return 0;
 
-  const mentorWeight = getMentorProgramWeight(mentor, bucketTarget.program);
-
-  return bucketTarget.total * mentorWeight / bucketTarget.totalEligibleCapacity;
+  return bucketTarget.total * mentor.capacity / bucketTarget.totalEligibleCapacity;
 }
 
 function getMentorProgramTarget(programTarget, mentor, program) {
@@ -666,6 +644,165 @@ function getMentorProgramTarget(programTarget, mentor, program) {
   }
 
   return programTarget.total * mentor.capacity / programTarget.totalEligibleCapacity;
+}
+
+function buildNewBucketQueues(newStudents) {
+  const queues = {};
+
+  newStudents.forEach(student => {
+    const bucketKey = getBucketKey(
+      student.program,
+      student.salesType,
+      student.paymentCategory
+    );
+
+    if (!queues[bucketKey]) {
+      queues[bucketKey] = [];
+    }
+
+    queues[bucketKey].push(student);
+  });
+
+  return queues;
+}
+
+function hasQueuedStudents(bucketQueues) {
+  return Object.values(bucketQueues).some(queue => queue.length > 0);
+}
+
+function getProgramRatioOverflowPenalty(mentor, program, currentProgram) {
+  const ratioTarget = getProgramRatioTarget(mentor, program);
+
+  if (ratioTarget === null) return 0;
+
+  const overflow = currentProgram - ratioTarget;
+
+  if (overflow <= 0) return 0;
+
+  return overflow * 500000000;
+}
+
+function getAllocationScore({
+  mentor,
+  counts,
+  student,
+  bucketTargets,
+  programTargets
+}) {
+  const program = normalizeProgram(student.program);
+  const salesType = normalizeSalesType(student.salesType);
+  const paymentCategory = normalizePaymentCategory(student.paymentCategory);
+  const bucketKey = getBucketKey(program, salesType, paymentCategory);
+
+  const c = counts[mentor.id];
+  const bucketTarget = bucketTargets[bucketKey];
+  const programTarget = programTargets[program];
+
+  const mentorBucketTarget = getMentorBucketTarget(bucketTarget, mentor);
+  const mentorProgramTarget = getMentorProgramTarget(programTarget, mentor, program);
+
+  const currentBucket = ensureBucketCount(c, bucketKey);
+  const currentProgram = ensureProgramCount(c, program).total;
+
+  const bucketGap = mentorBucketTarget - currentBucket;
+  const programGap = mentorProgramTarget - currentProgram;
+  const capacityUsage = c.total / mentor.capacity;
+  const paymentPriority = getPaymentPriority(paymentCategory);
+  const ratioOverflowPenalty = getProgramRatioOverflowPenalty(
+    mentor,
+    program,
+    currentProgram
+  );
+
+  /*
+    Lower score = better mentor.
+
+    Priority:
+    1. Exact bucket gap: Program + Sales Type + Payment Category
+       Example: MBA + Channel + Annual.
+    2. Program ratio gap: BCA/MCA 75/25, MBA/BBA 60/40, MBA/B.Com 55/45.
+    3. Annual and Full Payment are weighted higher than Semester.
+    4. Capacity balance.
+
+    This is a SOFT ratio. If one program has more learners than the ratio target,
+    it will still allocate them instead of leaving learners unallocated.
+  */
+  return (
+    (-bucketGap * 1000000000 * paymentPriority) +
+    (-programGap * 500000000) +
+    ratioOverflowPenalty +
+    (capacityUsage * 100000) +
+    (c.total * 1000)
+  );
+}
+
+function getBestMentorForStudent(student, validMentors, counts, bucketTargets, programTargets) {
+  const eligibleMentors = getEligibleMentorsForStudent(
+    validMentors,
+    counts,
+    student
+  );
+
+  if (!eligibleMentors.length) return null;
+
+  let bestMentor = null;
+  let bestScore = Infinity;
+
+  eligibleMentors.forEach(mentor => {
+    const score = getAllocationScore({
+      mentor,
+      counts,
+      student,
+      bucketTargets,
+      programTargets
+    });
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestMentor = mentor;
+    }
+  });
+
+  return {
+    mentor: bestMentor,
+    score: bestScore
+  };
+}
+
+function pickNextBucket(bucketQueues, validMentors, counts, bucketTargets, programTargets) {
+  let bestBucketKey = null;
+  let bestMentor = null;
+  let bestScore = Infinity;
+
+  Object.keys(bucketQueues).forEach(bucketKey => {
+    const queue = bucketQueues[bucketKey];
+
+    if (!queue.length) return;
+
+    const student = queue[0];
+    const result = getBestMentorForStudent(
+      student,
+      validMentors,
+      counts,
+      bucketTargets,
+      programTargets
+    );
+
+    if (!result) return;
+
+    if (result.score < bestScore) {
+      bestScore = result.score;
+      bestBucketKey = bucketKey;
+      bestMentor = result.mentor;
+    }
+  });
+
+  if (!bestBucketKey || !bestMentor) return null;
+
+  return {
+    bucketKey: bestBucketKey,
+    mentor: bestMentor
+  };
 }
 
 function runAllocation() {
@@ -683,7 +820,8 @@ function runAllocation() {
       ...s,
       program: normalizeProgram(s.program),
       salesType: normalizeSalesType(s.salesType),
-      paymentCategory: normalizePaymentCategory(s.paymentCategory)
+      paymentCategory: normalizePaymentCategory(s.paymentCategory),
+      existingMentor: normalize(s.existingMentor)
     }));
 
   if (students.length === 0) {
@@ -704,10 +842,14 @@ function runAllocation() {
   const unallocated = [];
   const processedStudentIds = new Set();
 
+  /* Count locked learners first. These will not be changed. */
   students.forEach(student => {
     if (!student.existingMentor) return;
 
-    const mentor = findMentorByExistingName(validMentors, student.existingMentor);
+    const mentor = findMentorByExistingName(
+      validMentors,
+      student.existingMentor
+    );
 
     if (!mentor) {
       unallocated.push({
@@ -734,75 +876,49 @@ function runAllocation() {
 
   const newStudents = students.filter(s => !processedStudentIds.has(s.id));
 
-  newStudents.sort((a, b) => {
-    const programCompare = a.program.localeCompare(b.program);
-    if (programCompare !== 0) return programCompare;
+  /*
+    Bucket queues prevent one program from filling capacity first.
+    Instead of processing all BBA before MBA, it dynamically picks the bucket
+    with the biggest target gap after every single assignment.
+  */
+  const bucketQueues = buildNewBucketQueues(newStudents);
 
-    const salesCompare = a.salesType.localeCompare(b.salesType);
-    if (salesCompare !== 0) return salesCompare;
+  while (hasQueuedStudents(bucketQueues)) {
+    const next = pickNextBucket(
+      bucketQueues,
+      validMentors,
+      counts,
+      bucketTargets,
+      programTargets
+    );
 
-    return a.paymentCategory.localeCompare(b.paymentCategory);
-  });
+    if (!next) {
+      Object.keys(bucketQueues).forEach(bucketKey => {
+        const queue = bucketQueues[bucketKey];
 
-  newStudents.forEach(student => {
-    const program = normalizeProgram(student.program);
-    const salesType = normalizeSalesType(student.salesType);
-    const paymentCategory = normalizePaymentCategory(student.paymentCategory);
-
-    const bucketKey = getBucketKey(program, salesType, paymentCategory);
-    const bucketTarget = bucketTargets[bucketKey];
-    const programTarget = programTargets[program];
-    const paymentPriority = getPaymentPriority(paymentCategory);
-
-    const eligibleMentors = getEligibleMentorsForStudent(validMentors, counts, student);
-
-    if (!eligibleMentors.length) {
-      unallocated.push({
-        ...student,
-        reason: `No mentor mapped to ${program} or capacity full`
+        while (queue.length) {
+          const student = queue.shift();
+          unallocated.push({
+            ...student,
+            reason: `No mentor mapped to ${student.program} or capacity full`
+          });
+        }
       });
-      return;
+
+      break;
     }
 
-    let bestMentor = null;
-    let bestScore = Infinity;
+    const student = bucketQueues[next.bucketKey].shift();
+    const mentor = next.mentor;
 
-    eligibleMentors.forEach(m => {
-      const c = counts[m.id];
-
-      const mentorBucketTarget = getMentorBucketTarget(bucketTarget, m);
-      const mentorProgramTarget = getMentorProgramTarget(programTarget, m, program);
-
-      const currentBucket = ensureBucketCount(c, bucketKey);
-      const currentProgram = ensureProgramCount(c, program).total;
-
-      const bucketGap = mentorBucketTarget - currentBucket;
-      const programGap = mentorProgramTarget - currentProgram;
-      const capacityUsage = c.total / m.capacity;
-
-      // Soft ratio logic:
-      // Program ratio is important, but it should not block allocation when learner volume is higher than the ratio.
-      // Bucket balancing means: Program + Sales Type + Payment Category.
-      const score =
-        (-programGap * 500000000) +
-        (-bucketGap * 100000000 * paymentPriority) +
-        (capacityUsage * 100000) +
-        (c.total * 1000);
-
-      if (score < bestScore) {
-        bestScore = score;
-        bestMentor = m;
-      }
-    });
-
-    incrementCounts(counts[bestMentor.id], student);
+    incrementCounts(counts[mentor.id], student);
 
     assigned.push({
       ...student,
-      mentorName: bestMentor.name,
+      mentorName: mentor.name,
       locked: false
     });
-  });
+  }
 
   STATE.lastResults = {
     assigned,
