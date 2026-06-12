@@ -1,5 +1,7 @@
 'use strict';
 
+/* Updated Mentor Allocator: soft program ratios + capacity-weighted bucket balancing */
+
 const PROGRAMS = [
   'BBA', 'BCA', 'B.Com', 'MA.JMC', 'MBA',
   'MCA', 'M.Com', 'MA in Economics', 'MSc in Mathematics'
@@ -573,6 +575,16 @@ function getEligibleMentorsForStudent(validMentors, counts, student) {
   });
 }
 
+function getMentorProgramWeight(mentor, program) {
+  const ratioTarget = getProgramRatioTarget(mentor, program);
+
+  if (ratioTarget !== null && ratioTarget > 0) {
+    return ratioTarget;
+  }
+
+  return mentor.capacity;
+}
+
 function buildBucketTargets(students, validMentors) {
   const targets = {};
 
@@ -585,10 +597,18 @@ function buildBucketTargets(students, validMentors) {
     if (!targets[bucketKey]) {
       const eligibleMentors = validMentors.filter(m => mentorCanTakeProgram(m, program));
 
-      const totalEligibleCapacity = eligibleMentors.reduce(
-        (sum, m) => sum + m.capacity,
+      let totalEligibleCapacity = eligibleMentors.reduce(
+        (sum, m) => sum + getMentorProgramWeight(m, program),
         0
       );
+
+      // Fallback safety: if all ratio weights are zero, use normal capacity.
+      if (!totalEligibleCapacity) {
+        totalEligibleCapacity = eligibleMentors.reduce(
+          (sum, m) => sum + m.capacity,
+          0
+        );
+      }
 
       targets[bucketKey] = {
         program,
@@ -629,7 +649,9 @@ function buildProgramTargets(students, validMentors) {
 function getMentorBucketTarget(bucketTarget, mentor) {
   if (!bucketTarget || !bucketTarget.totalEligibleCapacity) return 0;
 
-  return bucketTarget.total * mentor.capacity / bucketTarget.totalEligibleCapacity;
+  const mentorWeight = getMentorProgramWeight(mentor, bucketTarget.program);
+
+  return bucketTarget.total * mentorWeight / bucketTarget.totalEligibleCapacity;
 }
 
 function getMentorProgramTarget(programTarget, mentor, program) {
@@ -758,17 +780,12 @@ function runAllocation() {
       const programGap = mentorProgramTarget - currentProgram;
       const capacityUsage = c.total / m.capacity;
 
-      const ratioTarget = getProgramRatioTarget(m, program);
-
-      const ratioPenalty =
-        ratioTarget !== null && currentProgram >= ratioTarget
-          ? 1000000000
-          : 0;
-
+      // Soft ratio logic:
+      // Program ratio is important, but it should not block allocation when learner volume is higher than the ratio.
+      // Bucket balancing means: Program + Sales Type + Payment Category.
       const score =
-        ratioPenalty +
-        (-programGap * 1000000000) +
-        (-bucketGap * 10000000 * paymentPriority) +
+        (-programGap * 500000000) +
+        (-bucketGap * 100000000 * paymentPriority) +
         (capacityUsage * 100000) +
         (c.total * 1000);
 
