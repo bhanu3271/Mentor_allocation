@@ -11,14 +11,14 @@ const SALES_TYPES = ['Channel', 'Inside'];
 const DEFAULT_MENTOR_CAPACITY = 800;
 
 const MENTOR_CAPACITY_OVERRIDES = {
-  'Sachin': 600,
+  'Sachin Rokaya': 600,
   'Grishmi Rajkumar Karande': 600,
-  'Pujith': 600
+  'Pujith S N': 600
 };
 
 const DEFAULT_MENTORS = [
-  ['Varsha', 'MSc in Mathematics'],
-  ['Sachin', 'MA.JMC', 'MBA'],
+  ['Varsha Chourasia', 'MSc in Mathematics'],
+  ['Sachin Rokaya', 'MA.JMC', 'MBA'],
   ['Grishmi Rajkumar Karande', 'MBA', 'M.Com'],
   ['Wasique Abrar', 'BBA', 'MBA'],
   ['Ankita Kumari', 'BBA', 'MBA'],
@@ -27,8 +27,10 @@ const DEFAULT_MENTORS = [
   ['Nourin Alom Barbhuiya', 'BBA', 'MBA'],
   ['M Madhina', 'B.Com', 'MBA'],
   ['Siddhant Kumar Sinha', 'BCA', 'MCA'],
-  ['Pujith', 'MA in Economics', 'MBA'],
-  ['Bhanu', 'BCA', 'MCA']
+  ['Pujith S N', 'MA in Economics', 'MBA'],
+  ['Bijith K V', 'BCA', 'MCA']
+  ['Manisha Singh', 'BCA', 'MCA']
+  ['Ruchi Priya', 'BCA', 'MCA']
 ];
 
 const PROGRAM_RATIO_RULES = {
