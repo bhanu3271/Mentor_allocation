@@ -30,7 +30,7 @@ const DEFAULT_MENTORS = [
   ['Pujith S N', 'MA in Economics', 'MBA'],
   ['Bijith K V', 'BCA', 'MCA'],
   ['Manisha Singh', 'BCA', 'MCA'],
-  ['Ruchi Priya', 'BCA', 'MCA']
+  ['Ruchi Priya', 'BBA', 'MBA']
 ];
 
 const PROGRAM_RATIO_RULES = {
