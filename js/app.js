@@ -28,8 +28,8 @@ const DEFAULT_MENTORS = [
   ['M Madhina', 'B.Com', 'MBA'],
   ['Siddhant Kumar Sinha', 'BCA', 'MCA'],
   ['Pujith S N', 'MA in Economics', 'MBA'],
-  ['Bijith K V', 'BCA', 'MCA']
-  ['Manisha Singh', 'BCA', 'MCA']
+  ['Bijith K V', 'BCA', 'MCA'],
+  ['Manisha Singh', 'BCA', 'MCA'],
   ['Ruchi Priya', 'BCA', 'MCA']
 ];
 
